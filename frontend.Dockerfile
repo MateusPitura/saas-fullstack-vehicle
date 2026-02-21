@@ -10,6 +10,12 @@ RUN npm install
 # Copy the rest of the application files for shared
 COPY shared/ ./
 
+# Copy backend prisma schema and scripts for enum generation
+COPY backend/prisma/schema.prisma /app/backend/prisma/schema.prisma
+COPY scripts/generate-shared-enums.js /app/scripts/
+# Generate enums from Prisma schema
+RUN cd /app && node scripts/generate-shared-enums.js
+
 # Set the working directory
 WORKDIR /app/frontend
 # Copy package.json
@@ -19,5 +25,12 @@ RUN npm install
 # Copy the rest of the application files
 COPY frontend/ .
 
-# Start the React app
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Build the React app
+RUN npm run build -- --mode staging
+
+# Expose the port for serving the static files
+EXPOSE 5173
+
+# Use serve to serve the static files
+RUN npm install -g serve
+CMD ["serve", "-s", "dist", "-l", "5173"]

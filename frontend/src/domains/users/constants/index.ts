@@ -1,29 +1,45 @@
 import { SEED_ROLE_ADMIN_ID } from "@shared/constants";
 import { UserFormInputs, UsersFilterFormInputs } from "../types";
 
-export const addressDefaultValues: UserFormInputs['address'] = {
+export const addressDefaultValues: UserFormInputs["address"][number] = {
   cep: "",
   street: "",
   number: "",
   neighborhood: "",
-  city: "",
+  cityIbgeCode: "",
   state: "",
-  complement: "",
 };
 
 export const userDefaultValues: UserFormInputs = {
   fullName: "",
   email: "",
-  cellPhone: "",
+  phone: "",
   cpf: "",
-  code: "",
-  birthDate: "",
-  address: null,
+  address: [],
   roleId: String(SEED_ROLE_ADMIN_ID),
 };
 
 export const userFilterDefaultValues: UsersFilterFormInputs = {
   fullName: "",
-  orderBy: "fullName",
   status: "active",
+  startDate: "",
+  endDate: "",
 };
+
+export const USERS_TABLE = {
+  name: {
+    label: "Nome completo",
+  },
+  cpf: {
+    label: "CPF",
+  },
+  email: {
+    label: "Email",
+  },
+  phone: {
+    label: "Celular",
+  },
+  status: {
+    label: "Status",
+  },
+} as const;

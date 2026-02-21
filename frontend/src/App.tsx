@@ -1,10 +1,13 @@
-import { RouterProvider } from "react-router-dom";
-import { GlobalProvider } from "./domains/global/contexts/GlobalContext";
-import Snackbar from "./design-system/Snackbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+import { RouterProvider } from "react-router-dom";
 import ErrorBoundary from "./ErrorBoundary";
+import Snackbar from "./design-system/Snackbar";
+import { FilterProvider } from "./domains/global/contexts/FilterContext";
+import { GlobalProvider } from "./domains/global/contexts/GlobalContext";
 import { QueryKeys } from "./domains/global/types";
+import { auditInterceptor } from "./domains/global/utils/auditInterceptor";
 import { router } from "./router";
 
 const queryClient = new QueryClient({
@@ -19,19 +22,23 @@ const queryClient = new QueryClient({
 
 declare module "@tanstack/react-query" {
   interface Register {
-    queryKey: QueryKeys;
+    queryKey: [QueryKeys, ...ReadonlyArray<unknown>];
   }
 }
 
 export default function App() {
+  auditInterceptor();
+
   return (
     <ErrorBoundary>
       <GlobalProvider>
-        <QueryClientProvider client={queryClient}>
-          <Snackbar />
-          <RouterProvider router={router} />
-          <ReactQueryDevtools />
-        </QueryClientProvider>
+        <FilterProvider>
+          <QueryClientProvider client={queryClient}>
+            <Snackbar />
+            <RouterProvider router={router} />
+            <ReactQueryDevtools />
+          </QueryClientProvider>
+        </FilterProvider>
       </GlobalProvider>
     </ErrorBoundary>
   );

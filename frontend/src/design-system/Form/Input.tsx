@@ -1,21 +1,16 @@
-import { applyMask } from "@/domains/global/utils/applyMask";
-import { useEffect, type ReactElement } from "react";
-import {
-  FieldValues,
-  Path,
-  useFormContext,
-  useFormState,
-  useWatch,
-} from "react-hook-form";
-import Button from "../Button";
-import ErrorLabel from "./ErrorLabel";
 import { Mask } from "@/domains/global/types";
-import { IconsName } from "../types";
+import { applyMask } from "@/domains/global/utils/applyMask";
 import classNames from "classnames";
+import { useEffect, type ReactElement } from "react";
+import { FieldValues, Path, useFormContext, useWatch } from "react-hook-form";
+import Button from "../Button";
+import { IconsName } from "../types";
+import InputError from "./InputError";
+import InputLabel from "./InputLabel";
 
 interface InputProperties<T extends FieldValues> {
   name: Path<T>;
-  label: string;
+  label?: string;
   placeholder?: string;
   mask?: Mask;
   iconRight?: IconsName;
@@ -27,6 +22,8 @@ interface InputProperties<T extends FieldValues> {
   autoFocus?: boolean;
   forceUnselect?: boolean;
   disabled?: boolean;
+  autoComplete?: boolean;
+  onChange?: (value: string) => void;
 }
 
 export default function Input<T extends FieldValues>({
@@ -43,12 +40,11 @@ export default function Input<T extends FieldValues>({
   autoFocus = false,
   forceUnselect,
   disabled = false,
+  autoComplete = true,
+  onChange: customOnChange
 }: InputProperties<T>): ReactElement {
   const { register, setValue } = useFormContext();
-  const { errors } = useFormState({
-    name,
-  });
-  const value = useWatch({ name }); // 🌠 trocar para apenas watch
+  const value = useWatch({ name });
 
   useEffect(() => {
     if (mask) {
@@ -57,33 +53,32 @@ export default function Input<T extends FieldValues>({
     }
   }, [value, mask, name, setValue]);
 
+  const { onChange, ...rest } = register(name);
+
   return (
     <label className="flex flex-col">
-      <div>
-        <span className="text-body-medium text-light-onSurface p-1">
-          {label}
-        </span>
-        {required && (
-          <span className="text-light-error text-body-medium">*</span>
-        )}
-      </div>
+      {label && <InputLabel label={label} required={required} />}
       <div
         className={classNames(
-          "border-light-outline border-2 rounded-md flex items-center gap-1 overflow-hidden",
+          "border-neutral-500 border-2 rounded-md flex items-center gap-1 overflow-hidden h-10",
           {
-            "!border-light-disabled": disabled,
+            "!border-neutral-300": disabled,
           }
         )}
       >
         <input
-          {...register(name)}
+          {...rest}
+          onChange={(event) => {
+            onChange(event);
+            customOnChange?.(event.target.value);
+          }}
           className={classNames(
-            "text-body-large text-light-onSurface bg-transparent p-1 px-2 caret-light-primary flex-1 h-10",
+            "text-body-large text-neutral-700 bg-transparent p-1 px-2 caret-neutral-700 flex-1",
             {
-              "!text-light-disabled": disabled,
+              "!text-neutral-300": disabled,
             }
           )}
-          autoComplete="on"
+          autoComplete={autoComplete ? "on" : "off"}
           placeholder={placeholder}
           type={type}
           maxLength={maxLength}
@@ -100,15 +95,16 @@ export default function Input<T extends FieldValues>({
         {iconRight && (
           <div className="px-2">
             <Button
-              variant="tertiary"
+              variant="quaternary"
               iconRight={iconRight}
               padding="none"
               onClick={onClickIconRight}
+              tooltipMessage={undefined}
             />
           </div>
         )}
       </div>
-      {hideErrorLabel || <ErrorLabel errors={errors} name={name} />}
+      {hideErrorLabel || <InputError name={name} />}
     </label>
   );
 }

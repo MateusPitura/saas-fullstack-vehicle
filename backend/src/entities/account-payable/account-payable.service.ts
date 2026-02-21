@@ -1,0 +1,172 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { AccountPayable, Prisma } from '@prisma/client';
+import { PrismaService } from 'src/infra/database/prisma.service';
+import {
+  AccountPayableRepository,
+  FindByIdResponse,
+  SearchResponse,
+} from 'src/repositories/account_payable-repository';
+import { CreateInput } from 'src/types';
+
+@Injectable()
+export class AccountPayableService implements AccountPayableRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(data: CreateInput<AccountPayable>): Promise<AccountPayable> {
+    return this.prisma.accountPayable.create({ data });
+  }
+  async findById(id: string, enterpriseId: number): Promise<FindByIdResponse> {
+    // 1️⃣ Buscar a conta a pagar com os installments
+    const accountPayable = await this.prisma.accountPayable.findUnique({
+      where: { id: Number(id), enterpriseId },
+      include: {
+        accountPayableInstallments: true, // garante que pegamos todas as parcelas
+      },
+    });
+
+    if (!accountPayable) {
+      throw new NotFoundException('Conta a pagar não encontrada.');
+    }
+
+    // 2️⃣ Calcular totalValue somando os valores das parcelas
+    const totalValue = accountPayable.accountPayableInstallments.reduce(
+      (sum, installment) => sum + installment.value,
+      0,
+    );
+
+    // 3️⃣ Calcular overallStatus
+    // Se todas as parcelas forem PAID → PAID, caso contrário → PENDING
+    const overallStatus = accountPayable.accountPayableInstallments.every(
+      (installment) => installment.status === 'PAID',
+    )
+      ? 'PAID'
+      : 'PENDING';
+
+    // 4️⃣ Montar payload personalizado
+    return {
+      id: accountPayable.id,
+      description: accountPayable.description,
+      paidTo: accountPayable.paidTo,
+      totalValue,
+      overallStatus,
+      installmentsNumber: accountPayable.accountPayableInstallments.length,
+    };
+  }
+
+  async search(
+    query: string,
+    page: number,
+    limit: number,
+    startDate: Date,
+    endDate: Date,
+    enterpriseId: number,
+    overallStatus?: 'PENDING' | 'PAID',
+  ): Promise<SearchResponse> {
+    let startDateFormatted: Date | undefined = undefined;
+    if (startDate) {
+      startDateFormatted = new Date(startDate);
+      startDateFormatted.setUTCHours(0, 0, 0, 0);
+    }
+
+    let endDateFormatted: Date | undefined = undefined;
+    if (endDate) {
+      endDateFormatted = new Date(endDate);
+      endDateFormatted.setUTCHours(23, 59, 59, 999);
+    }
+
+    const filter: Prisma.AccountPayableWhereInput = {
+      enterpriseId,
+      description: {
+        contains: query,
+        mode: 'insensitive',
+      },
+      accountPayableInstallments: overallStatus
+        ? overallStatus === 'PAID'
+          ? {
+              every: { status: 'PAID' },
+            }
+          : overallStatus === 'PENDING'
+            ? {
+                some: { status: 'PENDING' },
+              }
+            : undefined
+        : undefined,
+      createdAt: {
+        gte: startDateFormatted,
+        lte: endDateFormatted,
+      },
+    };
+
+    const [accounts, total, summaryByStatus] = await Promise.all([
+      this.prisma.accountPayable.findMany({
+        where: filter,
+        include: {
+          accountPayableInstallments: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          description: 'asc',
+        },
+      }),
+      this.prisma.accountPayable.count({
+        where: filter,
+      }),
+      this.prisma.accountPayableInstallment.groupBy({
+        by: ['status'],
+        _sum: {
+          value: true,
+        },
+        where: {
+          accountPayable: {
+            createdAt: filter.createdAt,
+            description: filter.description,
+            enterpriseId,
+          },
+        },
+      }),
+    ]);
+
+    const totalPaid =
+      summaryByStatus.find((s) => s.status === 'PAID')?._sum.value ?? 0;
+    const totalPending =
+      summaryByStatus.find((s) => s.status === 'PENDING')?._sum.value ?? 0;
+
+    const data = accounts.map((acc) => {
+      const installments = acc.accountPayableInstallments;
+
+      // soma do valor de todas as parcelas
+      const totalValue = installments.reduce(
+        (sum, inst) => sum + Number(inst.value),
+        0,
+      );
+
+      // regra para definir overallStatus
+      const allPaid = installments.every((inst) => inst.status === 'PAID');
+      const overallStatus: 'PAID' | 'PENDING' = allPaid ? 'PAID' : 'PENDING';
+
+      const closeDueDate = acc.accountPayableInstallments
+        .filter((i) => i.status === 'PENDING')
+        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0]?.dueDate;
+
+      return {
+        id: acc.id,
+        description: acc.description ?? '',
+        paidTo: acc.paidTo ?? '',
+        totalValue,
+        overallStatus,
+        date: closeDueDate,
+      };
+    });
+
+    return {
+      total,
+      data,
+      summary: {
+        totalOverall: totalPaid + totalPending,
+        totalPaid,
+        totalPending,
+      },
+    };
+  }
+}

@@ -1,61 +1,111 @@
-import { memo, useEffect, useState, type ReactElement } from "react";
 import Button from "@/design-system/Button";
-import RoutesGroup from "@/domains/global/components/RoutesGroup";
 import { privateRoutes } from "@/domains/global/constants/routes";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import classNames from "classnames";
+import { memo, useState, type ReactElement } from "react";
+import { useNavigate } from "react-router-dom";
+import { AUTH_CHANNEL, BACKEND_URL } from "../constants";
+import useGlobalContext from "../hooks/useGlobalContext";
+import usePermissions from "../hooks/usePermissions";
+import useSafeFetch from "../hooks/useSafeFetch";
+import checkPermission from "../utils/checkPermission";
+import safeNavigate from "../utils/safeNavigate";
 
-interface PageSideBarProps {
-  isOpen: boolean;
-}
+function PageSideBar(): ReactElement {
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState(
+    window.innerWidth >= 1280 ? true : false
+  );
 
-function PageSideBar({ isOpen }: PageSideBarProps): ReactElement {
-  const [activePath, setActivePath] = useState("");
+  function handleToggleSideMenu() {
+    setIsSideMenuOpen((prev) => !prev);
+  }
 
   const navigate = useNavigate();
-  const location = useLocation();
 
-  useEffect(() => {
-    setActivePath(`/${location.pathname.split("/")[1]}`);
-  }, [location]);
+  const { safeFetch } = useSafeFetch();
+  const { authChannel } = useGlobalContext();
+
+  async function handleSignOut(): Promise<boolean> {
+    return await safeFetch(`${BACKEND_URL}/auth/sign-out`, {
+      method: "POST",
+    });
+  }
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: handleSignOut,
+    onSettled: () => {
+      safeNavigate("/");
+      authChannel.postMessage({ type: AUTH_CHANNEL.SIGNOUT });
+    },
+  });
+
+  const { userPermissions } = usePermissions();
 
   return (
     <div
       className={classNames(
-        "min-w-[5rem] max-w-[5rem] bg-light-surfaceContainerLowest p-4 flex flex-col gap-2 overflow-y-auto transition-all duration-300 ease-in-out",
+        "min-w-[5rem] max-w-[5rem] bg-slate-800 p-4 flex flex-col gap-4 overflow-y-auto transition-all duration-300 ease-in-out rounded-tr-md",
         {
-          "!min-w-64 !max-w-64": isOpen,
+          "!min-w-64 !max-w-64": isSideMenuOpen,
         }
       )}
     >
-      {privateRoutes.map((group) => {
-        if (!group.shoudDisplay) return null;
+      <div
+        className={classNames("flex gap-4", {
+          "justify-center": !isSideMenuOpen,
+        })}
+      >
+        <Button
+          onClick={handleToggleSideMenu}
+          variant="tertiary"
+          iconLeft="Menu"
+          tooltipMessage={isSideMenuOpen ? "Fechar" : "Abrir"}
+        />
+        {isSideMenuOpen && (
+          <span className="text-headline-small text-neutral-100 flex items-center">
+            Ziscar
+          </span>
+        )}
+      </div>
+      <div className="flex-1 flex flex-col gap-2 text-nowrap">
+        {privateRoutes.map((route) => {
+          if (!route.shouldDisplay) return null;
 
-        return (
-          <RoutesGroup
-            key={group.groupName}
-            label={isOpen ? group.groupName : undefined}
-          >
-            {group.routes.map(
-              (route) =>
-                route.shouldDisplay && (
-                  <Button
-                    key={route.path}
-                    padding={isOpen ? "default" : "none"}
-                    label={isOpen ? route.displayName : undefined}
-                    state={activePath === route.path ? "active" : undefined}
-                    variant="quaternary"
-                    iconLeft={route.icon}
-                    onClick={() => {
-                      navigate(route.path);
-                    }}
-                    fullWidth
-                  />
-                )
-            )}
-          </RoutesGroup>
-        );
-      })}
+          const hasPermission = checkPermission(
+            userPermissions,
+            route.resource,
+            route.action
+          );
+
+          if (!hasPermission) return null;
+
+          return (
+            <Button
+              key={route.path}
+              padding={isSideMenuOpen ? "default" : "none"}
+              label={isSideMenuOpen ? route.displayName : undefined}
+              tooltipMessage={route.displayName}
+              variant="tertiary"
+              iconLeft={route.icon}
+              onClick={() => {
+                navigate(route.path);
+              }}
+              fullWidth
+              data-cy={`button-${route.path}`}
+            />
+          );
+        })}
+      </div>
+      <Button
+        onClick={mutate}
+        variant="tertiary"
+        iconLeft="Logout"
+        label={isSideMenuOpen ? "Sair" : undefined}
+        state={isPending ? "loading" : undefined}
+        fullWidth
+        data-cy="button-sign-out"
+        tooltipMessage="Sair"
+      />
     </div>
   );
 }

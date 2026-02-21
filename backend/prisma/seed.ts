@@ -1,78 +1,83 @@
-import { PrismaClient, Roles } from '@prisma/client';
-import {
-  SEED_ROLE_ADMIN_ID,
-  SEED_ROLE_SALES_ID,
-} from '../../shared/src/constants';
+import { PrismaClient, RoleType } from '@prisma/client';
+import { citiesData } from './seed-data/cities';
+import { vehicleBrands } from './seed-data/vehicleBrands';
+import { rolePermissions } from './seed-data/rolePermissions';
 
 const prisma = new PrismaClient();
 
-function safeUpsertRole(
-  id: number,
-  name: Roles,
-  permissions: { id: number }[],
-) {
-  return {
-    where: { id },
-    update: {
-      name,
-      permissions: {
-        set: permissions,
-      },
-    },
-    create: {
-      id,
-      name,
-      permissions: {
-        connect: permissions,
-      },
-    },
-  };
-}
-
 async function seed() {
-  await prisma.permission.createMany({
-    data: [
-      {
-        id: 1,
-        resource: 'USERS',
-        action: 'CREATE',
-      },
-      {
-        id: 2,
-        resource: 'USERS',
-        action: 'READ',
-      },
-      {
-        id: 3,
-        resource: 'USERS',
-        action: 'UPDATE',
-      },
-      {
-        id: 4,
-        resource: 'USERS',
-        action: 'DELETE',
-      },
-    ],
-    skipDuplicates: true,
-  });
+  await prisma.$transaction(
+    async (tx) => {
+      console.log('🌱 Starting database seeding...');
 
-  await Promise.all([
-    prisma.role.upsert(
-      safeUpsertRole(SEED_ROLE_ADMIN_ID, 'ADMIN', [
-        { id: 1 },
-        { id: 2 },
-        { id: 3 },
-        { id: 4 },
-      ]),
-    ),
-    prisma.role.upsert(
-      safeUpsertRole(SEED_ROLE_SALES_ID, 'SALES', [{ id: 2 }]),
-    ),
-  ]);
+      await tx.city.createMany({
+        data: citiesData,
+        skipDuplicates: true,
+      });
+
+      await tx.vehicleBrand.createMany({
+        data: vehicleBrands,
+        skipDuplicates: true,
+      });
+
+      const allPermissions = Object.values(rolePermissions).flat();
+      await Promise.all(
+        allPermissions.map((permission) =>
+          tx.permission.upsert({
+            where: { resource_action: permission },
+            update: {},
+            create: permission,
+          }),
+        ),
+      );
+
+      for (const [roleName, permissions] of Object.entries(rolePermissions)) {
+        const permissionsToConnect = await tx.permission.findMany({
+          where: {
+            OR: permissions,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.role.upsert({
+          where: { name: roleName as RoleType },
+          update: {
+            rolePermissions: {
+              deleteMany: {},
+              create: permissionsToConnect.map(({ id }) => ({
+                permission: {
+                  connect: { id },
+                },
+              })),
+            },
+          },
+          create: {
+            name: roleName as RoleType,
+            rolePermissions: {
+              create: permissionsToConnect.map(({ id }) => ({
+                permission: {
+                  connect: { id },
+                },
+              })),
+            },
+          },
+        });
+      }
+    },
+    { timeout: 100_000 },
+  );
 }
 
 seed()
-  .catch((error) => {
-    console.error('❌ Failed to run seed', error);
+  .then(() => {
+    console.log('🌱 Database seeded successfully.');
   })
-  .finally(() => void prisma.$disconnect());
+  .catch((error) => {
+    console.error('❌ Failed to run seed:', error);
+    process.exit(1);
+  })
+  .finally(() => {
+    void prisma.$disconnect();
+  });

@@ -1,29 +1,57 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
-import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './entities/auth/auth.module';
+import { DatabaseModule } from './infra/database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { ClientModule } from './client/client.module';
-import { OrganizationModule } from './organization/organization.module';
-import { EmailModule } from './email/email.module';
+import { EmailModule } from './entities/email/email.module';
 import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { PdfModule } from './pdf/pdf.module';
-import { SheetModule } from './sheet/sheet.module';
-import { AuditInterceptor } from './audit/audit.interceptor';
 import { AppController } from './app.controller';
+import { AccountPayableModule } from './entities/account-payable/account-payable.module';
+import { AccountPayableInstallmentModule } from './entities/account-payable-installment/account-payable-installment.module';
+import { AccountReceivableModule } from './entities/account-receivable/account-receivable.module';
+import { AccountReceivableInstallmentModule } from './entities/account-receivable-installment/account-receivable-installment.module';
+import { AddressModule } from './entities/address/address.module';
+import { CityModule } from './entities/city/city.module';
+import { CustomerModule } from './entities/customer/customer.module';
+import { PaymentMethodPayableModule } from './entities/payment-method-payable/payment-method-payable.module';
+import { PaymentMethodReceivableModule } from './entities/payment-method-receivable/payment-method-receivable.module';
+import { StoreModule } from './entities/store/store.module';
+import { VehicleModule } from './entities/vehicle/vehicle.module';
+import { VehicleBrandModule } from './entities/vehicle-brand/vehicle-brand.module';
+import { VehicleCharacteristicValueModule } from './entities/vehicle-characteristic-value/vehicle-characteristic-value.module';
+import { VehicleExpenseModule } from './entities/vehicle-expense/vehicle-expense.module';
+import { VehiclePurchaseModule } from './entities/vehicle-purchase/vehicle-purchase.module';
+import { VehicleSaleModule } from './entities/vehicle-sale/vehicle-sale.module';
+import { UserModule } from './entities/user/user.module';
+import { join } from 'path';
+import { AuditInterceptor } from './entities/audit/audit.interceptor';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: join(__dirname, '../../.env'),
+    }),
     AuthModule,
     UserModule,
     DatabaseModule,
-    ClientModule,
-    OrganizationModule,
     EmailModule,
-    PdfModule,
-    SheetModule,
+    AccountPayableModule,
+    AccountPayableInstallmentModule,
+    AccountReceivableModule,
+    AccountReceivableInstallmentModule,
+    AddressModule,
+    CityModule,
+    CustomerModule,
+    PaymentMethodPayableModule,
+    PaymentMethodReceivableModule,
+    StoreModule,
+    VehicleModule,
+    VehicleBrandModule,
+    VehicleCharacteristicValueModule,
+    VehicleExpenseModule,
+    VehiclePurchaseModule,
+    VehicleSaleModule,
   ],
   providers: [
     {

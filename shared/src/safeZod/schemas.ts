@@ -1,11 +1,30 @@
 import { z } from "zod";
-import { validateCpf } from "../utils/validateCpf";
-import { validateCnpj } from "../utils/validateCnpj";
 import { removeMask } from "../utils/removeMask";
+import { validateCnpj } from "../utils/validateCnpj";
+import { validateCpf } from "../utils/validateCpf";
 
 export type infer<T extends z.ZodTypeAny> = z.infer<T>;
 
-export const list = z.enum;
+export type RefinementCtx = z.RefinementCtx;
+
+export const nativeEnum = z.nativeEnum;
+
+export function enumeration<T extends string>(values: readonly T[]) {
+  return z.enum(values as [T, ...T[]], { message: "Opção inválida" });
+}
+
+export function checkbox<T extends string>(values: readonly T[]) {
+  return z.array(enumeration(values as [T, ...T[]]));
+}
+
+export const array = <T extends z.ZodTypeAny>(schema: T, maxItems?: number) => {
+  const arraySchema = z.array(schema);
+  return maxItems
+    ? arraySchema.max(maxItems, {
+        message: `Limite de ${maxItems} excedido`,
+      })
+    : arraySchema;
+};
 
 export const boolean = z.boolean;
 
@@ -27,8 +46,46 @@ export const number = () =>
       required_error: "Campo obrigatório",
       message: "Número inválido",
     })
-    .int({ message: "Número inválido" })
-    .positive({ message: "Número inválido" });
+    .int({ message: "Número inválido" });
+
+interface NumberStringProperties {
+  min?: number;
+  max?: number;
+  formatter?: (_: number) => string;
+}
+
+export function numberString({
+  min = 1,
+  max = 100_000_000_000,
+  formatter,
+}: NumberStringProperties = {}) {
+  return string()
+    .or(empty())
+    .transform((number) => removeMask(number))
+    .refine(
+      (number) => {
+        return parseInt(number, 10) >= min;
+      },
+      {
+        message: `Deve ser maior ou igual a ${
+          formatter ? formatter(min) : min
+        }`,
+      }
+    )
+    .refine(
+      (number) => {
+        return parseInt(number, 10) <= max;
+      },
+      {
+        message: `Deve ser menor ou igual a ${
+          formatter ? formatter(max) : max
+        }`,
+      }
+    );
+}
+
+export const numberPositive = () =>
+  number().positive({ message: "Número inválido" });
 
 export const date = () =>
   z.coerce.date({
@@ -37,12 +94,49 @@ export const date = () =>
     }),
   });
 
-export const id = () => number();
+export const dateString = () =>
+  date().transform((date) => date.toISOString().split("T")[0]);
+
+export const paymentDate = () =>
+  date()
+    .min(new Date("1900-01-01"), { message: "Data de pagamento inválida" })
+    .max(new Date(), { message: "Data de pagamento inválida" })
+    .transform((date) => date.toISOString().split("T")[0]);
+
+export const dueDate = () =>
+  date()
+    .min(new Date("1900-01-01"), { message: "Data de vencimento inválida" })
+    .transform((date) => date.toISOString().split("T")[0]);
+
+export const dateRangeRule: [
+  (data: Record<string, unknown>) => boolean,
+  object
+] = [
+  (data: Record<string, unknown>) => {
+    const startDate = data["startDate"] as Date | string | null | undefined;
+    const endDate = data["endDate"] as Date | string | null | undefined;
+
+    if (!startDate || !endDate) return true;
+
+    return new Date(endDate) >= new Date(startDate);
+  },
+  {
+    message: "Data final deve ser após a data inicial",
+    path: ["endDate"],
+  },
+];
+
+export const id = () => numberPositive();
 
 export const email = () => string().email({ message: "Email inválido" });
 
-export const fullName = () =>
+export const name = () =>
   string().regex(/^[^0-9]+$/, {
+    message: "Nome inválido",
+  });
+
+export const fullName = () =>
+  name().refine((val) => val.trim().includes(" "), {
     message: "Nome completo inválido",
   });
 
@@ -50,12 +144,6 @@ export const cep = () =>
   string(9)
     .transform((cep) => removeMask(cep))
     .refine((cep) => /^\d{8}$/.test(cep), "CEP inválido");
-
-export const birthDate = () =>
-  date()
-    .min(new Date("1900-01-01"), { message: "Data de nascimento inválida" })
-    .max(new Date(), { message: "Data de nascimento inválida" })
-    .transform((date) => date.toISOString().split("T")[0]);
 
 export const cpf = () =>
   string(14)
@@ -67,9 +155,9 @@ export const cnpj = () =>
     .transform((cnpj) => removeMask(cnpj))
     .refine((cnpj) => validateCnpj(cnpj), { message: "CNPJ inválido" });
 
-export const cellphone = () =>
+export const phone = () =>
   string(15)
-    .transform((cellphone) => removeMask(cellphone))
+    .transform((phone) => removeMask(phone))
     .refine((cep) => /^\d{11}$/.test(cep), "Celular inválido");
 
 export const password = () =>
@@ -81,6 +169,24 @@ export const password = () =>
     .regex(/[@$!%*?&]/, {
       message: "Ao menos um caractere especial",
     });
+
+export const color = () =>
+  string(7).regex(/^#[0-9A-Fa-f]{6}$/, { message: "Cor inválida" });
+
+export const plateNumber = () =>
+  string(8)
+    .transform((plateNumber) => plateNumber.replace(/[^A-Z0-9]/gi, ""))
+    .refine(
+      (plateNumber) =>
+        /^([A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2})$/.test(plateNumber),
+      "Placa inválida"
+    );
+
+export const chassi = () =>
+  string(17).refine(
+    (chassi) => /^[A-HJ-NPR-Z0-9]{17}$/.test(chassi),
+    "Chassi inválido"
+  );
 
 export const SchemaPassword = object({
   newPassword: password(),
@@ -94,3 +200,8 @@ export const SchemaAddress = object({
   cep: cep(),
   number: string(),
 });
+
+export const record = <T extends z.ZodTypeAny>(valueSchema: T) =>
+  z.record(valueSchema);
+
+export const unknown = z.unknown;

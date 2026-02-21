@@ -9,7 +9,7 @@ import { Childrenable } from "@/domains/global/types";
 import type { ReactNode } from "react";
 
 interface TooltipProperties extends Childrenable {
-  content: string;
+  content?: string;
   disabled?: boolean;
 }
 
@@ -24,7 +24,7 @@ export default function Tooltip({
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent
           side="bottom"
-          className="bg-light-outline border-light-outline text-light-onPrimary"
+          className="bg-neutral-700 border-neutral-700 text-white"
         >
           <span className="text-label-medium">{content}</span>
         </TooltipContent>

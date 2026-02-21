@@ -1,44 +1,33 @@
-import Button from "@/design-system/Button";
+import FieldArray from "@/design-system/Form/FieldArray";
 import Input from "@/design-system/Form/Input";
+import Select from "@/design-system/Form/Select";
+import { addressDefaultValues } from "@/domains/users/constants";
+import { UserFormInputs } from "@/domains/users/types";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
+import { BACKEND_URL, CEP_LENGTH_WITH_MASK, STATES } from "../constants";
 import useSafeFetch from "../hooks/useSafeFetch";
 import useSnackbar from "../hooks/useSnackbar";
-import { useQuery } from "@tanstack/react-query";
-import { addressDefaultValues } from "@/domains/users/constants";
-import Tooltip from "@/design-system/Tooltip";
-import { UserFormInputs } from "@/domains/users/types";
+import { BrazilianState } from "../types";
+import { City } from "../types/model";
 
 interface ViaCepAddress {
   logradouro: string;
   bairro: string;
-  localidade: string;
-  uf: string;
+  ibge: string;
+  uf: BrazilianState;
   erro: boolean;
 }
 
-interface AddressFieldsProps {
-  defaultOpen?: boolean;
-}
-
-export default function AddressFields({
-  defaultOpen = false,
-}: AddressFieldsProps): ReactNode {
+export default function AddressFields(): ReactNode {
   const [currentValidCep, setCurrentValidCep] = useState("");
-  const [isOpen, setIsOpen] = useState(defaultOpen);
 
-  const { setValue, trigger, getValues } = useFormContext<UserFormInputs>();
+  const { setValue, trigger, getValues, watch } =
+    useFormContext<UserFormInputs>();
 
   const { safeFetch } = useSafeFetch();
   const { showErrorSnackbar } = useSnackbar();
-
-  async function fillAddress() {
-    const isValid = await trigger("address.cep");
-    if (isValid) {
-      const cep = getValues("address.cep");
-      setCurrentValidCep(cep);
-    }
-  }
 
   async function getCepInfo(cep: string): Promise<ViaCepAddress | undefined> {
     return await safeFetch(`https://viacep.com.br/ws/${cep}/json/`, {
@@ -46,7 +35,7 @@ export default function AddressFields({
     });
   }
 
-  const { data: cepInfo, isFetching } = useQuery({
+  const { data: cepInfo, isFetching: isFetchingCep } = useQuery({
     queryKey: ["cepApi", currentValidCep],
     queryFn: ({ queryKey }) => getCepInfo(queryKey[1]),
     enabled: !!currentValidCep,
@@ -62,15 +51,52 @@ export default function AddressFields({
 
     if (!cepInfo) return;
 
-    setValue("address.street", cepInfo.logradouro, { shouldDirty: true });
-    setValue("address.neighborhood", cepInfo.bairro, { shouldDirty: true });
-    setValue("address.city", cepInfo.localidade, {
+    setValue("address.0.street", cepInfo.logradouro, { shouldDirty: true });
+    setValue("address.0.neighborhood", cepInfo.bairro, { shouldDirty: true });
+    setValue("address.0.cityIbgeCode", cepInfo.ibge, {
       shouldDirty: true,
     });
-    setValue("address.state", cepInfo.uf, {
+    setValue("address.0.state", cepInfo.uf, {
       shouldDirty: true,
     });
   }, [cepInfo, setValue, showErrorSnackbar]);
+
+  async function getCitiesFromState(
+    state?: string
+  ): Promise<City[] | undefined> {
+    if (!state) return [];
+
+    return await safeFetch(`${BACKEND_URL}/city/${state}`);
+  }
+
+  const selectedState = watch("address.0.state");
+
+  const { data: citiesInfo, isFetching: isFetchingCities } = useQuery({
+    queryKey: ["ibgeApi", selectedState],
+    queryFn: ({ queryKey }) => getCitiesFromState(queryKey[1]),
+    enabled: !!selectedState,
+    select: (data) =>
+      data?.map((city) => ({
+        value: String(city.ibgeCode),
+        label: city.name,
+      })),
+  });
+
+  async function fillAddress() {
+    const isValid = await trigger("address.0.cep");
+    if (isValid) {
+      const cep = getValues("address.0.cep");
+      setCurrentValidCep(cep);
+    }
+  }
+
+  const cepWatch = watch("address.0.cep");
+
+  useEffect(() => {
+    if (cepWatch?.length === CEP_LENGTH_WITH_MASK) {
+      fillAddress();
+    }
+  }, [cepWatch]);
 
   function handleOnSubmitCepField(
     event: React.KeyboardEvent<HTMLInputElement>
@@ -81,59 +107,60 @@ export default function AddressFields({
     }
   }
 
-  return !isOpen ? (
-    <div className="col-span-full">
-      <Button
-        variant="secondary"
-        label="Adicionar endereço"
-        onClick={() => {
-          setIsOpen(true);
-          setValue("address", addressDefaultValues, { shouldDirty: true });
-        }}
-        fullWidth
-        textAlign="center"
-      />
-    </div>
-  ) : (
-    <>
-      <div className="flex items-center justify-end col-span-full">
-        <Tooltip content="Remover endereço">
-          <Button
-            variant="tertiary"
-            iconLeft="Delete"
-            onClick={() => {
-              setIsOpen(false);
-              setValue("address", null, { shouldDirty: true });
-            }}
+  return (
+    <FieldArray<UserFormInputs>
+      name="address"
+      appendText="Adicionar endereço"
+      removeText="Remover endereço"
+      maxLength={1}
+      title="Endereço"
+      appendDefaultValues={addressDefaultValues}
+      render={() => (
+        <>
+          <div onKeyDown={handleOnSubmitCepField}>
+            <Input<UserFormInputs>
+              label="CEP"
+              name="address.0.cep"
+              mask="cep"
+              maxLength={CEP_LENGTH_WITH_MASK}
+              required
+              forceUnselect
+              disabled={isFetchingCep}
+            />
+          </div>
+          <Input<UserFormInputs>
+            label="Número"
+            name="address.0.number"
+            required
           />
-        </Tooltip>
-      </div>
-      <div
-        className="flex items-center justify-between gap-1"
-        onKeyDown={handleOnSubmitCepField}
-      >
-        <Input<UserFormInputs>
-          label="CEP"
-          name="address.cep"
-          mask="cep"
-          maxLength={9}
-          required
-          forceUnselect
-        />
-        <Button
-          variant="quaternary"
-          label="Preencher automaticamente"
-          onClick={fillAddress}
-          padding="none"
-          state={isFetching ? "loading" : undefined}
-        />
-      </div>
-      <Input<UserFormInputs> label="Número" name="address.number" required />
-      <Input<UserFormInputs> label="Rua" name="address.street" />
-      <Input<UserFormInputs> label="Bairro" name="address.neighborhood" />
-      <Input<UserFormInputs> label="Cidade" name="address.city" />
-      <Input<UserFormInputs> label="Estado" name="address.state" />
-      <Input<UserFormInputs> label="Complemento" name="address.complement" />
-    </>
+          <Input<UserFormInputs>
+            label="Rua"
+            name="address.0.street"
+            disabled={isFetchingCep}
+          />
+          <Input<UserFormInputs>
+            label="Bairro"
+            name="address.0.neighborhood"
+            disabled={isFetchingCep}
+          />
+          <Select<UserFormInputs>
+            label="Estado"
+            name="address.0.state"
+            options={STATES}
+            onChange={() =>
+              setValue("address.0.cityIbgeCode", "", { shouldDirty: true })
+            }
+            disabled={isFetchingCep}
+          />
+          <Select<UserFormInputs>
+            label="Cidade"
+            name="address.0.cityIbgeCode"
+            options={citiesInfo || []}
+            loading={isFetchingCities}
+            disabled={!selectedState}
+          />
+        </>
+      )}
+    />
   );
 }

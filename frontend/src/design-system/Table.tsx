@@ -1,22 +1,21 @@
+import Spinner from "@/design-system/Spinner";
+import useCheckPermission from "@/domains/global/hooks/useCheckPermission";
+import useDialog from "@/domains/global/hooks/useDialog";
+import { Childrenable } from "@/domains/global/types";
+import { ITEMS_PER_PAGE } from "@shared/constants";
+import { ActionsType, ResourcesType } from "@shared/enums";
+import { formatDeniedMessage } from "@shared/utils/formatDeniedMessage";
 import classNames from "classnames";
 import { Children, type ReactElement, type ReactNode } from "react";
 import Button from "./Button";
-import Spinner from "@/design-system/Spinner";
-import { Popover } from "./Popover";
-import SideSheet from "./SideSheet";
-import { Childrenable } from "@/domains/global/types";
-import useDialog from "@/domains/global/hooks/useDialog";
 import Loading from "./Loading";
-import useCheckPermission from "@/domains/global/hooks/useCheckPermission";
-import { formatDeniedMessage } from "@shared/utils/formatDeniedMessage";
-import { Resource, Action as ActionProp } from "@shared/types";
+import SideSheet from "./SideSheet";
 import { ButtonState } from "./types";
-import { ITEMS_PER_PAGE } from "@shared/constants";
 
 function Container({ children }: Childrenable): ReactElement {
   return (
     <div className="overflow-x-auto flex flex-1">
-      <div className="min-w-[50rem] w-full flex flex-col">{children}</div>
+      <div className="w-full flex flex-col">{children}</div>
     </div>
   );
 }
@@ -29,7 +28,7 @@ interface RowProps extends Childrenable {
 function Row({ children, className, gridColumns = "default" }: RowProps) {
   let gridColumnsCount = gridColumns;
   if (gridColumns === "default") {
-    gridColumnsCount = 10;
+    gridColumnsCount = 11;
   } else if (gridColumns === "auto") {
     gridColumnsCount = (Children.count(children) - 2) * 2 + 2;
   }
@@ -37,7 +36,8 @@ function Row({ children, className, gridColumns = "default" }: RowProps) {
   return (
     <div
       className={classNames(
-        "p-4 grid gap-2 bg-light-surfaceContainerLowest h-[72px] items-center border-b border-outlineVariant",
+        "px-2 py-4 flex-col flex gap-2 bg-neutral-50 border-b border-neutral-300 border-r",
+        "xl:py-0 xl:grid xl:h-14 xl:items-center",
         className
       )}
       style={{
@@ -55,7 +55,7 @@ function Header({ children, className, gridColumns }: HeaderProps) {
   return (
     <Row
       className={classNames(
-        "bg-light-tertiaryContainer rounded-t-md border-none",
+        "bg-neutral-50 border border-neutral-300 rounded-t-md xl:block hidden",
         className
       )}
       gridColumns={gridColumns}
@@ -66,28 +66,27 @@ function Header({ children, className, gridColumns }: HeaderProps) {
 }
 
 interface CellProps {
+  id?: string;
   className?: string;
   colSpan?: number;
-  label?: string;
+  label?: ReactNode;
+  columnLabel?: string;
 }
 
-function Cell({ label, className, colSpan }: CellProps) {
+function Cell({ id, label, className, colSpan, columnLabel }: CellProps) {
   const colSpanAux = colSpan ?? 2;
 
   return (
     <span
-      className={classNames(
-        "text-light-onTertiaryContainer text-body-medium overflow-x-hidden",
-        className,
-        {
-          "first:!col-span-1": !colSpan,
-        }
-      )}
+      className="text-neutral-700 text-body-medium overflow-x-hidden"
       style={{
         gridColumn: `span ${colSpanAux} / span ${colSpanAux}`,
       }}
     >
-      {label}
+      <span className="font-semibold xl:hidden">{columnLabel}: </span>
+      <span className={className} data-cy={`${columnLabel}-${id}`}>
+        {label}
+      </span>
     </span>
   );
 }
@@ -100,19 +99,15 @@ interface ActionProps extends Childrenable {
 function Action({ className, colSpan = 1, children }: ActionProps) {
   return (
     <div
-      className={classNames("overflow-x-hidden flex justify-end", className)}
+      className={classNames(
+        "overflow-x-hidden flex gap-2 xl:justify-end",
+        className
+      )}
       style={{
         gridColumn: `span ${colSpan} / span ${colSpan}`,
       }}
     >
-      <Popover>
-        <Popover.Trigger>
-          <Button variant="tertiary" iconRight="MoreHoriz" />
-        </Popover.Trigger>
-        <Popover.Content align="end" className="w-fit">
-          {children}
-        </Popover.Content>
-      </Popover>
+      {children}
     </div>
   );
 }
@@ -124,11 +119,9 @@ interface HeadProps extends CellProps {
 function Head({ label, className, action = false, colSpan }: HeadProps) {
   return (
     <Cell
-      className={classNames("!text-body-large", className, {
-        "!col-span-1": action,
-      })}
+      className={classNames("!text-body-large", className)}
       label={label}
-      colSpan={colSpan}
+      colSpan={action ? 1 : colSpan}
     />
   );
 }
@@ -136,8 +129,8 @@ function Head({ label, className, action = false, colSpan }: HeadProps) {
 interface BodyProps extends Childrenable {
   isEmpty?: boolean;
   isLoading?: boolean;
-  resource?: Resource;
-  action?: ActionProp;
+  resource?: ResourcesType;
+  action?: ActionsType;
 }
 
 function Body({ children, isEmpty, isLoading, action, resource }: BodyProps) {
@@ -145,11 +138,11 @@ function Body({ children, isEmpty, isLoading, action, resource }: BodyProps) {
 
   if (isLoading || isEmpty) {
     return (
-      <div className="flex-1 bg-light-surfaceContainerLowest overflow-y-auto flex items-center justify-center">
+      <div className="flex-1 bg-neutral-50 overflow-y-auto flex items-center justify-center border xl:border-t-0 rounded-md xl:rounded-t-none border-neutral-300">
         {isLoading ? (
           <Spinner />
         ) : (
-          <span className="text-light-onSurface text-body-medium">
+          <span className="text-neutral-700 text-body-medium">
             {hasPermission
               ? "Nenhum item encontrado"
               : formatDeniedMessage({ resource, action })}
@@ -160,7 +153,7 @@ function Body({ children, isEmpty, isLoading, action, resource }: BodyProps) {
   }
 
   return (
-    <div className="flex-1 bg-light-surfaceContainerLowest overflow-y-auto">
+    <div className="flex-1 bg-neutral-50 border xl:border-t-0 rounded-md xl:rounded-t-none border-neutral-300 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:block">
       {children}
     </div>
   );
@@ -168,17 +161,11 @@ function Body({ children, isEmpty, isLoading, action, resource }: BodyProps) {
 
 interface FooterProps {
   className?: string;
-  onClickSheetBtn?: () => void;
-  sheetBtnState?: ButtonState;
-  onClickPdfBtn?: () => void;
-  pdfBtnState?: ButtonState;
-  onClickNavigateBtn?: (page: number) => void;
   currentStartItem?: number;
-  totalItems?: number;
   itemsPerPage?: number;
+  totalItems?: number;
+  onClickNavigateBtn?: (page: number) => void;
   isLoading?: boolean;
-  resourceExportBtn?: Resource;
-  actionExportBtn?: ActionProp;
 }
 
 function Footer({
@@ -186,14 +173,8 @@ function Footer({
   currentStartItem = 1,
   itemsPerPage = ITEMS_PER_PAGE,
   totalItems,
-  onClickPdfBtn,
-  onClickSheetBtn,
   onClickNavigateBtn,
   isLoading,
-  pdfBtnState,
-  sheetBtnState,
-  actionExportBtn,
-  resourceExportBtn,
 }: FooterProps) {
   const pageOffset = (currentStartItem - 1) * itemsPerPage; // 0, 20, 40 etc.
 
@@ -214,49 +195,18 @@ function Footer({
   return (
     <Row
       className={classNames(
-        "bg-light-tertiaryContainer rounded-b-md border-none !flex items-center gap-4 justify-end",
+        "bg-neutral-50 rounded-b-md border-none !flex items-center gap-4 justify-center !flex-row",
         className
       )}
       gridColumns={1}
     >
-      {onClickSheetBtn && (
-        <Button
-          variant="quaternary"
-          label="Exportar como planilha"
-          iconRight="FileDownload"
-          onClick={onClickSheetBtn}
-          state={isLoading ? "loading" : sheetBtnState}
-          resource={resourceExportBtn}
-          action={actionExportBtn}
-        />
-      )}
-      {onClickPdfBtn && (
-        <Button
-          variant="quaternary"
-          label="Exportar como PDF"
-          iconRight="FileDownload"
-          onClick={onClickPdfBtn}
-          state={isLoading ? "loading" : pdfBtnState}
-          resource={resourceExportBtn}
-          action={actionExportBtn}
-        />
-      )}
-      <Loading
-        isLoading={!!isLoading}
-        className="text-light-onTertiaryContainer text-body-large"
-      >
-        {totalItems && (
-          <>
-            {`${pageOffset + 1}`}
-            {`-${lastPage ? totalItems : pageOffset + itemsPerPage}`}
-            {` de ${totalItems}`}
-          </>
-        )}
-      </Loading>
       <Button
-        variant="tertiary"
+        variant="quaternary"
         iconLeft="NavigateBefore"
         onClick={handleBefore}
+        label="Anterior"
+        data-cy="table-navigate-before"
+        tooltipMessage="Página anterior"
         state={
           isLoading
             ? "loading"
@@ -265,10 +215,27 @@ function Footer({
             : undefined
         }
       />
+      <Loading
+        isLoading={!!isLoading}
+        className="text-neutral-700 text-body-large"
+      >
+        {totalItems ? (
+          <>
+            {`${pageOffset + 1}`}
+            {`-${lastPage ? totalItems : pageOffset + itemsPerPage}`}
+            {` de ${totalItems}`}
+          </>
+        ) : (
+          "-"
+        )}
+      </Loading>
       <Button
-        variant="tertiary"
-        iconLeft="NavigateNext"
+        variant="quaternary"
+        iconRight="NavigateNext"
         onClick={handleNext}
+        label="Próxima"
+        tooltipMessage="Página seguinte"
+        data-cy="table-navigate-next"
         state={
           isLoading
             ? "loading"
@@ -300,6 +267,8 @@ function Filter({ onFilterCallback, filterBtnState, form }: FilterProps) {
             iconRight="FilterList"
             onClick={onFilterCallback}
             state={filterBtnState}
+            data-cy="button-table-filter"
+            tooltipMessage="Abrir filtros"
           />
         </div>
       </SideSheet.Trigger>

@@ -1,0 +1,360 @@
+import { Injectable } from '@nestjs/common';
+import {
+  Prisma,
+  Vehicle,
+  VehicleCategory,
+  VehiclePurchase,
+  VehicleSale,
+  VehicleStatus,
+} from '@prisma/client';
+import {
+  FuelType,
+  VehicleCategory as SharedVehicleCategory,
+  VehicleStatus as SharedVehicleStatus,
+} from '@shared/enums';
+import { VEHICLE_INACTIVE_STATUS } from '@shared/types';
+import { PrismaService } from 'src/infra/database/prisma.service';
+import {
+  GetVehicleWithPaymentOutDto,
+  VehicleRepository,
+} from 'src/repositories/vehicle-repository';
+import { CreateInput, UpdateInput } from 'src/types';
+import { GET_VEHICLE, VEHICLE_WITH_PAYMENT_SELECT } from './constants';
+import type {
+  FetchVehicleBrandsResponseDto,
+  SearchModelRequestDto,
+  SearchModelResponseDto,
+  SearchPaidToRequestDto,
+  SearchPaidToResponseDto,
+  SearchVehiclesRequestDto,
+  SearchVehiclesResponseDto,
+} from './dtos';
+
+@Injectable()
+export class VehicleService implements VehicleRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(data: CreateInput<Vehicle>): Promise<Vehicle> {
+    return this.prisma.vehicle.create({ data });
+  }
+
+  async findById(
+    id: number,
+    enterpriseId: number,
+  ): Promise<GetVehicleWithPaymentOutDto | null> {
+    return await this.prisma.vehicle.findUnique({
+      where: { id, store: { enterpriseId } },
+      select: VEHICLE_WITH_PAYMENT_SELECT,
+    });
+  }
+
+  async findByChassiNumber(chassiNumber: string): Promise<Vehicle | null> {
+    return await this.prisma.vehicle.findUnique({
+      where: { chassiNumber },
+    });
+  }
+
+  async findByPlateNumber(plateNumber: string): Promise<Vehicle | null> {
+    return await this.prisma.vehicle.findUnique({
+      where: { plateNumber },
+    });
+  }
+
+  async update(
+    id: string,
+    data: UpdateInput<Vehicle>,
+  ): Promise<GetVehicleWithPaymentOutDto> {
+    return await this.prisma.vehicle.update({
+      where: { id: Number(id) },
+      data,
+      select: VEHICLE_WITH_PAYMENT_SELECT,
+    });
+  }
+
+  async archive(id: string): Promise<Vehicle> {
+    return await this.prisma.vehicle.update({
+      where: { id: Number(id) },
+      data: {
+        archivedAt: new Date(),
+      },
+    });
+  }
+
+  async unarchive(id: string): Promise<Vehicle> {
+    return await this.prisma.vehicle.update({
+      where: { id: Number(id) },
+      data: {
+        archivedAt: null,
+      },
+    });
+  }
+
+  async fetchBrands(): Promise<FetchVehicleBrandsResponseDto> {
+    return await this.prisma.vehicleBrand.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async search(
+    params: SearchVehiclesRequestDto,
+    enterpriseId: number,
+  ): Promise<SearchVehiclesResponseDto> {
+    const page = params.page;
+    const take = params.limit;
+    const skip = (page - 1) * take;
+
+    const where: Prisma.VehicleWhereInput = {};
+
+    where.status = { not: VehicleStatus.SOLD };
+    where.store = {
+      archivedAt: null,
+      enterpriseId,
+    };
+
+    if (params.storeId) where.storeId = Number(params.storeId);
+    if (params.brandId) where.brandId = Number(params.brandId);
+
+    if (params.status === VEHICLE_INACTIVE_STATUS) {
+      where.archivedAt = { not: null };
+    } else {
+      where.archivedAt = null;
+    }
+
+    if (params.status && params.status !== VEHICLE_INACTIVE_STATUS) {
+      where.status = params.status as VehicleStatus;
+    }
+
+    if (params.category) where.category = params.category as VehicleCategory;
+    if (params.modelYear) where.modelYear = Number(params.modelYear);
+    if (params.yearOfManufacture)
+      where.yearOfManufacture = Number(params.yearOfManufacture);
+
+    if (params.modelName && params.modelName !== '')
+      where.modelName = {
+        contains: params.modelName,
+        mode: 'insensitive',
+      };
+
+    if (params.plateNumber && params.plateNumber !== '')
+      where.plateNumber = {
+        contains: params.plateNumber,
+        mode: 'insensitive',
+      };
+
+    if (params.announcedPriceMin || params.announcedPriceMax)
+      where.announcedPrice = {
+        gte: params.announcedPriceMin ?? undefined,
+        lte: params.announcedPriceMax ?? undefined,
+      };
+
+    if (params.startDate || params.endDate) {
+      let startDateFormatted: Date | undefined = undefined;
+      if (params.startDate) {
+        startDateFormatted = new Date(params.startDate);
+        startDateFormatted.setUTCHours(0, 0, 0, 0);
+      }
+
+      let endDateFormatted: Date | undefined = undefined;
+      if (params.endDate) {
+        endDateFormatted = new Date(params.endDate);
+        endDateFormatted.setUTCHours(23, 59, 59, 999);
+      }
+
+      where.createdAt = {
+        gte: startDateFormatted,
+        lte: endDateFormatted,
+      };
+    }
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.vehicle.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { modelName: 'asc' },
+        select: GET_VEHICLE,
+      }),
+      this.prisma.vehicle.count({ where }),
+    ]);
+
+    const mappedRows = rows.map((row) => ({
+      ...row,
+      status: row.status as SharedVehicleStatus,
+      category: row.category as SharedVehicleCategory | null,
+      fuelType: row.fuelType as FuelType,
+    }));
+
+    return { data: mappedRows, total: total };
+  }
+
+  async searchPaidTo(
+    params: SearchPaidToRequestDto,
+    enterpriseId: number,
+  ): Promise<SearchPaidToResponseDto> {
+    const resultRaw = await this.prisma.accountPayable.findMany({
+      where: {
+        paidTo: { contains: params.paidTo, mode: 'insensitive' },
+        enterpriseId,
+      },
+      orderBy: { paidTo: 'asc' },
+      select: {
+        paidTo: true,
+        id: true,
+      },
+      distinct: ['paidTo'],
+    });
+
+    const uniqueResults = new Set();
+    const results: {
+      paidTo: string | null;
+      id: number;
+    }[] = [];
+
+    for (const result of resultRaw) {
+      const key = result.paidTo?.toUpperCase() ?? null;
+      if (!uniqueResults.has(key)) {
+        uniqueResults.add(key);
+        results.push({ ...result, paidTo: key });
+      }
+    }
+
+    return { data: results };
+  }
+
+  async searchModel(
+    params: SearchModelRequestDto,
+    enterpriseId: number,
+  ): Promise<SearchModelResponseDto> {
+    const resultWat = await this.prisma.vehicle.findMany({
+      where: {
+        modelName: { contains: params.modelName, mode: 'insensitive' },
+        store: {
+          enterpriseId,
+        },
+      },
+      orderBy: { modelName: 'asc' },
+      select: {
+        modelName: true,
+        id: true,
+      },
+      distinct: ['modelName'],
+    });
+
+    const uniqueResults = new Set();
+    const results: {
+      modelName: string | null;
+      id: number;
+    }[] = [];
+
+    for (const result of resultWat) {
+      const key = result.modelName?.toUpperCase() ?? null;
+      if (!uniqueResults.has(key)) {
+        uniqueResults.add(key);
+        results.push({ ...result, modelName: key });
+      }
+    }
+
+    return { data: results };
+  }
+
+  async insertCharacteristics(
+    vehicleId: number,
+    characteristics: string[],
+  ): Promise<void> {
+    const data = characteristics.map((characteristic) => ({
+      vehicleId: Number(vehicleId),
+      characteristic,
+    }));
+
+    await this.prisma.vehicleCharacteristicValue.createMany({
+      data,
+      skipDuplicates: true,
+    });
+  }
+
+  async updateCharacteristics(
+    vehicleId: number,
+    characteristics: string[],
+  ): Promise<void> {
+    const vehicleIdNumber = Number(vehicleId);
+
+    await this.prisma.vehicleCharacteristicValue.deleteMany({
+      where: { vehicleId: vehicleIdNumber },
+    });
+
+    if (characteristics.length > 0) {
+      const data = characteristics.map((characteristic) => ({
+        vehicleId: vehicleIdNumber,
+        characteristic,
+      }));
+
+      await this.prisma.vehicleCharacteristicValue.createMany({
+        data,
+      });
+    }
+  }
+
+  async getVehicleSale(
+    vehicleSaleId: string,
+    enterpriseId: number,
+  ): Promise<VehicleSale | null> {
+    return await this.prisma.vehicleSale.findUnique({
+      where: {
+        id: Number(vehicleSaleId),
+        vehicle: { store: { enterpriseId } },
+      },
+      include: {
+        accountReceivable: true,
+        accountPayable: true,
+      },
+    });
+  }
+
+  async getVehicleWithPayment(
+    vehicleId: string,
+    enterpriseId: number,
+  ): Promise<GetVehicleWithPaymentOutDto | null> {
+    return await this.prisma.vehicle.findUnique({
+      where: { id: Number(vehicleId), store: { enterpriseId } },
+      select: VEHICLE_WITH_PAYMENT_SELECT,
+    });
+  }
+
+  async createPurchase(
+    data: CreateInput<VehiclePurchase>,
+  ): Promise<VehiclePurchase> {
+    return this.prisma.vehiclePurchase.create({ data });
+  }
+
+  async updateVehiclePayment(
+    vehicleId: string,
+    payment: { purchaseDate?: Date; paidTo?: string | null },
+  ): Promise<void> {
+    const vehiclePurchase = await this.prisma.vehiclePurchase.findFirst({
+      where: { vehicleId: Number(vehicleId) },
+      include: { accountPayable: true },
+    });
+
+    if (!vehiclePurchase) {
+      throw new Error('Vehicle purchase not found');
+    }
+
+    if (payment.purchaseDate) {
+      await this.prisma.vehiclePurchase.update({
+        where: { id: vehiclePurchase.id },
+        data: { date: payment.purchaseDate },
+      });
+    }
+
+    if (payment.paidTo !== undefined) {
+      await this.prisma.accountPayable.update({
+        where: { id: vehiclePurchase.accountPayableId },
+        data: { paidTo: payment.paidTo },
+      });
+    }
+  }
+}

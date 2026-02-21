@@ -1,19 +1,28 @@
-import { Action, Resource } from "../types";
+import { Actions, ActionsType, Resources, ResourcesType } from "../enums";
 
-const actionFormatted: Record<Action, string> = {
+const actionFormatted: Record<Actions, string> = {
   CREATE: "criar",
   READ: "visualizar",
   UPDATE: "editar",
-  DELETE: "excluir",
+  DELETE: "desativar",
 };
 
-const resourceFormatted: Record<Resource, string> = {
+const resourceFormatted: Record<Resources, string> = {
   USERS: "usuários",
+  ACCOUNTS_PAYABLE: "contas a pagar",
+  ACCOUNTS_RECEIVABLE: "contas a receber",
+  CUSTOMERS: "clientes",
+  STORES: "lojas",
+  VEHICLE_EXPENSE: "gastos de veículo",
+  VEHICLES: "veículos",
+  VEHICLE_PURCHASE: "compra de veículo",
+  VEHICLE_SALE: "venda de veículo",
+  REPORTS: "relatórios",
 };
 
 interface FormatDeniedMessageProperties {
-  resource?: Resource;
-  action?: Action;
+  resource?: ResourcesType;
+  action?: ActionsType;
 }
 
 export function formatDeniedMessage({

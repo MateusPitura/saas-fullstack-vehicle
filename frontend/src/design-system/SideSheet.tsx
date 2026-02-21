@@ -1,4 +1,4 @@
-import { type ReactElement } from "react";
+import { DialogDescription } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetClose,
@@ -7,12 +7,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import Button from "./Button";
-import classNames from "classnames";
-import { DialogDescription } from "@/components/ui/dialog";
 import { DialogProvider } from "@/domains/global/contexts/DialogContext";
 import useButtonState from "@/domains/global/hooks/useButtonState";
 import { Childrenable, DialogProps } from "@/domains/global/types";
+import classNames from "classnames";
+import { type ReactElement } from "react";
+import Button from "./Button";
 import { ButtonState } from "./types";
 
 interface ContainerProps extends DialogProps, Childrenable {}
@@ -20,8 +20,13 @@ interface ContainerProps extends DialogProps, Childrenable {}
 function Container({ children, ...dialog }: ContainerProps): ReactElement {
   return (
     <DialogProvider {...dialog}>
-      <Sheet open={dialog.isOpen} onOpenChange={dialog.handleOpen}>
+      <Sheet
+        open={dialog.isOpen}
+        onOpenChange={dialog.handleOpen}
+        modal={false}
+      >
         {children}
+        {/* DialogDescription corrige warning de acessibilidade */}
         <DialogDescription className="hidden" />
       </Sheet>
     </DialogProvider>
@@ -34,7 +39,7 @@ function Trigger({ children }: Childrenable): ReactElement {
 
 function Content({ children }: Childrenable): ReactElement {
   return (
-    <SheetContent className="bg-light-surfaceContainerLowest rounded-tl-md flex flex-col p-0 gap-0 justify-between">
+    <SheetContent className="bg-white rounded-tl-md flex flex-col p-0 gap-0 justify-between">
       {children}
     </SheetContent>
   );
@@ -48,7 +53,7 @@ function Header({ label }: HeaderProps): ReactElement {
   return (
     <SheetHeader className="p-6">
       <SheetTitle>
-        <span className="text-title-large text-light-onSurface">{label}</span>
+        <span className="text-title-large text-neutral-700">{label}</span>
       </SheetTitle>
     </SheetHeader>
   );
@@ -95,7 +100,7 @@ function Footer({
   return (
     <div
       className={classNames(
-        "p-6 border-t border-light-outlineVariant flex flex-0",
+        "p-6 border-t border-neutral-300 flex flex-0",
         className
       )}
     >
@@ -104,6 +109,8 @@ function Footer({
         onClick={onPrimaryCallback}
         type="submit"
         state={primaryBtnStateParsed}
+        data-cy="side-sheet-primary-button"
+        tooltipMessage={undefined}
       />
       {onSecondaryCallback ? (
         <Button
@@ -111,6 +118,7 @@ function Footer({
           variant="quaternary"
           onClick={onSecondaryCallback}
           state={secondaryBtnState}
+          tooltipMessage={undefined}
         />
       ) : (
         <SheetClose asChild>
@@ -118,6 +126,7 @@ function Footer({
             label={secondaryLabel}
             variant="quaternary"
             state={secondaryBtnState}
+            tooltipMessage={undefined}
           />
         </SheetClose>
       )}

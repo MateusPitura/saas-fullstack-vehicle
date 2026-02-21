@@ -1,27 +1,39 @@
-import { type ReactElement } from "react";
 import {
-  Dialog as DialogShadcn,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
+  Dialog as DialogShadcn,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import Button from "./Button";
-import { DialogClose } from "@radix-ui/react-dialog";
 import { DialogProvider } from "@/domains/global/contexts/DialogContext";
 import useButtonState from "@/domains/global/hooks/useButtonState";
 import { Childrenable, DialogProps } from "@/domains/global/types";
-import { Action, Resource } from "@shared/types";
-import { ButtonState } from "./types";
+import { DialogClose } from "@radix-ui/react-dialog";
+import { ActionsType, ResourcesType } from "@shared/enums";
+import classNames from "classnames";
+import { type ReactElement } from "react";
+import Button from "./Button";
+import { ButtonColor, ButtonState } from "./types";
 
-interface ContainerProps extends DialogProps, Childrenable {}
+interface ContainerProps extends DialogProps, Childrenable {
+  maxWidth?: string;
+}
 
-function Container({ children, ...dialog }: ContainerProps): ReactElement {
+function Container({
+  children,
+  maxWidth,
+  ...dialog
+}: ContainerProps): ReactElement {
   return (
     <DialogProvider {...dialog}>
       <DialogShadcn open={dialog.isOpen} onOpenChange={dialog.handleOpen}>
-        <DialogContent className="bg-light-surfaceContainerLowest p-0 gap-0 [&>button]:!ring-0 [&>button]!outline-none [&>button]:!ring-offset-0">
+        <DialogContent
+          className={classNames(
+            "bg-neutral-100 p-0 gap-0 [&>button]:!ring-0 [&>button]!outline-none [&>button]:!ring-offset-0",
+            maxWidth
+          )}
+        >
           {children}
         </DialogContent>
       </DialogShadcn>
@@ -37,39 +49,44 @@ function Header({ title }: HeaderProps): ReactElement {
   return (
     <DialogHeader className="flex gap-2 flex-row items-center px-6 pt-6 pb-2">
       <DialogTitle className="flex-1">
-        <span className="text-light-onSurface text-title-large">{title}</span>
+        <span className="text-neutral-700 text-title-large">{title}</span>
       </DialogTitle>
+      {/* DialogDescription corrige warning de acessibilidade */}
       <DialogDescription className="hidden" />
     </DialogHeader>
   );
 }
 
 function Body({ children }: Childrenable): ReactElement {
-  return <div className="px-6 py-2">{children}</div>;
+  return <div className="px-6 py-2 text-neutral-700">{children}</div>;
 }
 
 interface FooterProps {
   onClickPrimaryBtn?: () => void;
   labelPrimaryBtn: string;
   primaryBtnState?: ButtonState;
-  primaryBtResource?: Resource;
-  primaryBtnAction?: Action;
+  primaryBtnColor?: ButtonColor;
+  primaryBtnResource?: ResourcesType;
+  primaryBtnAction?: ActionsType;
   onClickSecondaryBtn?: () => void;
   labelSecondaryBtn?: string;
   secondaryBtnState?: ButtonState;
   dirty?: boolean;
+  className?: string;
 }
 
 function Footer({
   onClickPrimaryBtn,
   labelPrimaryBtn,
   primaryBtnState,
-  primaryBtResource,
+  primaryBtnResource,
   primaryBtnAction,
   onClickSecondaryBtn,
   labelSecondaryBtn = "Cancelar",
   secondaryBtnState,
+  primaryBtnColor,
   dirty,
+  className,
 }: FooterProps): ReactElement {
   const primaryBtnStateParsed = useButtonState({
     dirty,
@@ -77,13 +94,14 @@ function Footer({
   });
 
   return (
-    <DialogFooter className="flex px-6 pb-6 pt-2">
+    <DialogFooter className={classNames("flex px-6 pb-6 pt-2", className)}>
       {onClickSecondaryBtn ? (
         <Button
           variant="quaternary"
           onClick={onClickSecondaryBtn}
           label={labelSecondaryBtn}
           state={secondaryBtnState}
+          tooltipMessage={undefined}
         />
       ) : (
         <DialogClose asChild>
@@ -91,6 +109,7 @@ function Footer({
             variant="quaternary"
             label={labelSecondaryBtn}
             state={secondaryBtnState}
+            tooltipMessage={undefined}
           />
         </DialogClose>
       )}
@@ -100,8 +119,11 @@ function Footer({
         label={labelPrimaryBtn}
         state={primaryBtnStateParsed}
         type="submit"
-        resource={primaryBtResource}
+        resource={primaryBtnResource}
         action={primaryBtnAction}
+        color={primaryBtnColor}
+        data-cy={"dialog-footer-button-primary"}
+        tooltipMessage={undefined}
       />
     </DialogFooter>
   );

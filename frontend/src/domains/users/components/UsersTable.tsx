@@ -1,20 +1,23 @@
 import Table from "@/design-system/Table";
 import { useMemo, useState, type ReactNode } from "react";
-import useSnackbar from "@/domains/global/hooks/useSnackbar";
 import useSafeFetch from "@/domains/global/hooks/useSafeFetch";
 import { BACKEND_URL } from "@/domains/global/constants";
-import { User } from "@/domains/global/types/model";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { FetchUser } from "@/domains/global/types/model";
+import { useQuery } from "@tanstack/react-query";
 import selectUsersInfo from "../utils/selectUsersInfo";
 import UsersFilterForm from "../forms/UsersFilterForm";
-import useGlobalContext from "@/domains/global/hooks/useGlobalContext";
 import formatFilters from "@/domains/global/utils/formatFilters";
 import UsersTableActions from "./UsersTableActions";
-import { DisableUser } from "../types";
+import { DisableUser, UsersFilterFormInputs } from "../types";
 import DisableUserModal from "./DisableUserModal";
 import useDialog from "@/domains/global/hooks/useDialog";
 import { PageablePayload } from "@/domains/global/types";
-import handleExportFile from "@/domains/global/utils/handleExportFile";
+import ExportButton from "@/domains/pdf/components/ExportButton";
+import useFilterContext from "@/domains/global/hooks/useFilterContext";
+import selectUsersInfoForReport from "../utils/selectUsersInfoForReport";
+import { USERS_TABLE } from "../constants";
+
+const enableReport = false;
 
 export default function UsersTable(): ReactNode {
   const [disableUserInfo, setDisableUserInfo] = useState<DisableUser>({
@@ -24,7 +27,7 @@ export default function UsersTable(): ReactNode {
 
   const dialog = useDialog();
   const { safeFetch } = useSafeFetch();
-  const { usersFilter, handleUsersFilter } = useGlobalContext();
+  const { usersFilter, handleUsersFilter } = useFilterContext();
 
   function handleDisableUserInfo(user: DisableUser) {
     dialog.openDialog();
@@ -42,19 +45,10 @@ export default function UsersTable(): ReactNode {
     return "";
   }, [usersFilter]);
 
-  const filterExportFormatted = useMemo(() => {
-    if (usersFilter) {
-      return formatFilters({
-        fullName: usersFilter.fullName,
-        status: usersFilter.status,
-        orderBy: usersFilter.orderBy,
-      });
-    }
-    return "";
-  }, [usersFilter]);
-
-  async function getUsersInfo(filter?: string): Promise<PageablePayload<User>> {
-    return await safeFetch(`${BACKEND_URL}/user?${filter}`, {
+  async function getUsersInfo(
+    filter?: string
+  ): Promise<PageablePayload<FetchUser>> {
+    return await safeFetch(`${BACKEND_URL}/user?${filter}&orderBy=fullName`, {
       resource: "USERS",
       action: "READ",
     });
@@ -66,75 +60,46 @@ export default function UsersTable(): ReactNode {
     select: selectUsersInfo,
   });
 
-  const { showSuccessSnackbar } = useSnackbar();
-
-  async function generatePdf(): Promise<Response> {
-    return await safeFetch(`${BACKEND_URL}/user/pdf?${filterExportFormatted}`, {
-      method: "GET",
-      resource: "USERS",
-      action: "READ",
-      isExport: true,
-    });
-  }
-
-  const { mutate: pdfMutate, isPending: isPdfPending } = useMutation({
-    mutationFn: generatePdf,
-    onSuccess: (data: Response) => {
-      showSuccessSnackbar({
-        title: "PDF gerado com sucesso",
-        actionLabel: "Baixar",
-        onActionClick: async () => {
-          handleExportFile({
-            data,
-            fileName: "users",
-            type: "pdf",
-          });
-        },
-        actionBtnResource: "USERS",
-        actionBtnAction: "READ",
-      });
-    },
-  });
-
-  async function generateSheet(): Promise<Response> {
-    return await safeFetch(`${BACKEND_URL}/user/sheet?${filterExportFormatted}`, {
-      method: "GET",
-      resource: "USERS",
-      action: "READ",
-      isExport: true,
-    });
-  }
-
-  const { mutate: mutateSheet, isPending: isSheetPending } = useMutation({
-    mutationFn: generateSheet,
-    onSuccess: (data: Response) => {
-      showSuccessSnackbar({
-        title: "Planilha gerada com sucesso",
-        actionLabel: "Baixar",
-        onActionClick: async () => {
-          handleExportFile({
-            data,
-            fileName: "users",
-            type: "sheet",
-          });
-        },
-        actionBtnResource: "USERS",
-        actionBtnAction: "READ",
-      });
-    },
-  });
-
   return (
     <>
       <DisableUserModal {...disableUserInfo} {...dialog} />
-      <Table.Filter form={<UsersFilterForm />} />
+      <div className="flex gap-4 justify-end">
+        {enableReport && (
+          <ExportButton<FetchUser, UsersFilterFormInputs>
+            fileName="Relatório Usuários"
+            queryKey={["users", filterFormatted]}
+            queryFn={getUsersInfo}
+            selectQueryFn={selectUsersInfoForReport}
+            formatFilters={{
+              fullName: "Nome completo",
+              status: "Status",
+              startDate: "Data inicial",
+              endDate: "Data final",
+            }}
+            formatFiltersValues={{
+              status: {
+                active: "Ativo",
+                inactive: "Inativo",
+              },
+            }}
+            formatColumns={{
+              fullName: "Nome",
+              cpf: "CPF",
+              email: "Email",
+              phone: "Celular",
+              archivedAt: "Ativo",
+            }}
+          />
+        )}
+        <Table.Filter form={<UsersFilterForm />} />
+      </div>
       <Table>
         <Table.Header>
-          <Table.Head label="ID" />
-          <Table.Head label="Nome completo" />
-          <Table.Head label="Email" />
-          <Table.Head label="Celular" />
-          <Table.Head label="Status" />
+          <Table.Head label={USERS_TABLE.name.label} />
+          <Table.Head label={USERS_TABLE.cpf.label} />
+          <Table.Head label={USERS_TABLE.email.label} />
+          <Table.Head label={USERS_TABLE.phone.label} />
+          <Table.Head label={USERS_TABLE.status.label} />
           <Table.Head action />
         </Table.Header>
         <Table.Body
@@ -145,15 +110,30 @@ export default function UsersTable(): ReactNode {
         >
           {usersInfo?.data.map((user) => (
             <Table.Row key={user.id}>
-              <Table.Cell label={user.id} />
-              <Table.Cell label={user.fullName} />
-              <Table.Cell label={user.email} />
-              <Table.Cell label={user.cellPhone} />
-              <Table.Cell label={user.isActive ? "Ativo" : "Inativo"} />
+              <Table.Cell
+                label={user.fullName}
+                columnLabel={USERS_TABLE.name.label}
+              />
+              <Table.Cell
+                label={user.cpf}
+                columnLabel={USERS_TABLE.cpf.label}
+              />
+              <Table.Cell
+                label={user.email}
+                columnLabel={USERS_TABLE.email.label}
+              />
+              <Table.Cell
+                label={user.phone}
+                columnLabel={USERS_TABLE.phone.label}
+              />
+              <Table.Cell
+                label={user.archivedAt ? "Inativo" : "Ativo"}
+                columnLabel={USERS_TABLE.status.label}
+              />
               <Table.Action>
                 <UsersTableActions
-                  isActive={user.isActive}
-                  userId={user.id}
+                  isActive={!user.archivedAt}
+                  userId={String(user.id)}
                   fullName={user.fullName}
                   handleDisableUserInfo={handleDisableUserInfo}
                 />
@@ -165,13 +145,7 @@ export default function UsersTable(): ReactNode {
           currentStartItem={usersFilter?.page}
           totalItems={usersInfo?.total}
           onClickNavigateBtn={handleChangePage}
-          onClickPdfBtn={pdfMutate}
-          onClickSheetBtn={mutateSheet}
-          pdfBtnState={isPdfPending ? "loading" : undefined}
-          sheetBtnState={isSheetPending ? "loading" : undefined}
           isLoading={isFetchingUsersInfo}
-          resourceExportBtn="USERS"
-          actionExportBtn="READ"
         />
       </Table>
     </>

@@ -1,7 +1,7 @@
 import Button from "@/design-system/Button";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@radix-ui/react-toast";
-import { Action, Resource } from "@shared/types";
+import { ActionsType, ResourcesType } from "@shared/enums";
 import { useCallback } from "react";
 
 interface ShowSuccessSnackbarProps {
@@ -9,16 +9,16 @@ interface ShowSuccessSnackbarProps {
   description?: string;
   actionLabel?: string;
   onActionClick?: () => void;
-  actionBtnResource?: Resource;
-  actionBtnAction?: Action;
+  actionBtnResource?: ResourcesType;
+  actionBtnAction?: ActionsType;
 }
 
 interface ShowErrorSnackbarProps {
   description?: string;
   actionLabel?: string;
   onActionClick?: () => void;
-  actionBtnResource?: Resource;
-  actionBtnAction?: Action;
+  actionBtnResource?: ResourcesType;
+  actionBtnAction?: ActionsType;
 }
 
 export default function useSnackbar() {
@@ -33,7 +33,7 @@ export default function useSnackbar() {
       actionBtnResource,
       actionBtnAction,
     }: ShowSuccessSnackbarProps) => {
-      toast({
+      return toast({
         title,
         description,
         action: onActionClick && (
@@ -45,6 +45,7 @@ export default function useSnackbar() {
               onClick={onActionClick}
               resource={actionBtnResource}
               action={actionBtnAction}
+              tooltipMessage={undefined}
             />
           </ToastAction>
         ),
@@ -61,7 +62,7 @@ export default function useSnackbar() {
       actionBtnResource,
       actionBtnAction,
     }: ShowErrorSnackbarProps) => {
-      toast({
+      return toast({
         variant: "destructive",
         title: "Ocorreu um erro",
         description,
@@ -69,12 +70,13 @@ export default function useSnackbar() {
           <ToastAction altText="Action button" asChild>
             <Button
               variant="primary"
-              state="red"
               label={actionLabel}
+              color="red"
               padding="none"
               onClick={onActionClick}
               resource={actionBtnResource}
               action={actionBtnAction}
+              tooltipMessage={undefined}
             />
           </ToastAction>
         ),

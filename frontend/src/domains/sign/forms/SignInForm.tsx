@@ -2,17 +2,20 @@ import Button from "@/design-system/Button";
 import Form from "@/design-system/Form";
 import Input from "@/design-system/Form/Input";
 import InputPassword from "@/design-system/Form/InputPassword";
-import { s } from "@shared/safeZod";
-import { type ReactNode } from "react";
-import SignCard from "../components/SignCard";
-import useSignPageContext from "../hooks/useSignPageContext";
+import {
+  AUTH_CHANNEL,
+  BACKEND_URL,
+  DEFAULT_ROUTE,
+} from "@/domains/global/constants";
 import useDialog from "@/domains/global/hooks/useDialog";
-import ForgetPasswordModal from "../components/ForgetPasswordModal";
-import useSafeFetch from "@/domains/global/hooks/useSafeFetch";
-import { useMutation } from "@tanstack/react-query";
-import { AUTH_CHANNEL, BACKEND_URL } from "@/domains/global/constants";
 import useGlobalContext from "@/domains/global/hooks/useGlobalContext";
+import useSafeFetch from "@/domains/global/hooks/useSafeFetch";
 import safeNavigate from "@/domains/global/utils/safeNavigate";
+import { s } from "@shared/safeZod";
+import { useMutation } from "@tanstack/react-query";
+import { type ReactNode } from "react";
+import ForgetPasswordModal from "../components/ForgetPasswordModal";
+import SignCard from "../components/SignCard";
 
 const SchemaSignInForm = s.object({
   email: s.email(),
@@ -22,7 +25,6 @@ const SchemaSignInForm = s.object({
 type SignInFormInputs = s.infer<typeof SchemaSignInForm>;
 
 export default function SignInForm(): ReactNode {
-  const { handleStep } = useSignPageContext();
   const dialog = useDialog();
   const { safeFetch } = useSafeFetch();
   const { authChannel } = useGlobalContext();
@@ -37,7 +39,7 @@ export default function SignInForm(): ReactNode {
   const { mutate, isPending } = useMutation({
     mutationFn: handleSignIn,
     onSuccess: () => {
-      safeNavigate('/profile')
+      safeNavigate(DEFAULT_ROUTE);
       authChannel.postMessage({ type: AUTH_CHANNEL.SIGNIN });
     },
   });
@@ -55,24 +57,20 @@ export default function SignInForm(): ReactNode {
         className="flex-1 flex flex-col"
       >
         <div className="flex-1 flex flex-col gap-2">
-          <Input<SignInFormInputs> name="email" label="Email" required autoFocus />
-          <InputPassword<SignInFormInputs>
-            label="Senha"
-            name="password"
-            required
-          />
+          <Input<SignInFormInputs> name="email" label="Email" autoFocus required />
+          <InputPassword<SignInFormInputs> label="Senha" name="password" required />
           <div className="flex items-end justify-end">
             <Button
               label="Esqueci a senha"
               variant="quaternary"
               onClick={dialog.openDialog}
+              data-cy="forget-password-button"
+              tooltipMessage="Recuperar senha"
             />
           </div>
         </div>
         <SignCard.Footer
           label="Entrar"
-          secondaryBtnLabel="Criar conta"
-          onClickSecondaryBtn={() => handleStep("SIGN_UP")}
           primaryBtnState={isPending ? "loading" : undefined}
         />
       </Form>

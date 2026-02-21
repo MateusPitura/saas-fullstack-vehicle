@@ -5,8 +5,8 @@ import useSnackbar from "@/domains/global/hooks/useSnackbar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import { DisableUser } from "../types";
-import useGlobalContext from "@/domains/global/hooks/useGlobalContext";
 import { DialogProps } from "@/domains/global/types";
+import useFilterContext from "@/domains/global/hooks/useFilterContext";
 
 interface DisableUserModalProps extends DisableUser, DialogProps {}
 
@@ -18,12 +18,12 @@ export default function DisableUserModal({
   const { safeFetch } = useSafeFetch();
   const { showSuccessSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
-  const { handleUsersFilter } = useGlobalContext();
+  const { handleUsersFilter } = useFilterContext();
 
   async function disableUser() {
     await safeFetch(`${BACKEND_URL}/user/${userId}`, {
       method: "DELETE",
-      body: { isActive: false },
+      body: { archivedAt: new Date().toISOString() },
       resource: "USERS",
       action: "DELETE",
     });
@@ -45,7 +45,7 @@ export default function DisableUserModal({
     <Dialog {...dialog}>
       <Dialog.Header title="Desativar usuário" />
       <Dialog.Body>
-        <span className="text-body-medium text-light-onSurface">
+        <span className="text-body-medium text-neutral-700">
           Tem certeza que deseja desativar o usuário
           <span className="font-bold">
             {BLANK}
@@ -57,8 +57,9 @@ export default function DisableUserModal({
       <Dialog.Footer
         labelPrimaryBtn="Desativar"
         onClickPrimaryBtn={mutate}
-        primaryBtnState={isPending ? "loading" : "red"}
-        primaryBtResource="USERS"
+        primaryBtnState={isPending ? "loading" : undefined}
+        primaryBtnColor="red"
+        primaryBtnResource="USERS"
         primaryBtnAction="DELETE"
       />
     </Dialog>

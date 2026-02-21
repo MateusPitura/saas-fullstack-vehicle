@@ -1,18 +1,19 @@
+import { Childrenable } from "@/domains/global/types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { lazy, useCallback, type ReactElement } from "react";
 import {
   DefaultValues,
   FieldValues,
   FormProvider,
+  Resolver,
   useForm,
   UseFormReturn,
 } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ZodType } from "zod";
-import { Childrenable } from "@/domains/global/types";
 
-const DevTool = import.meta.env.PROD
-  ? () => null
-  : lazy(() => import("@/domains/global/components/HookFormDevTool"));
+const DevTool = import.meta.env.DEV
+  ? lazy(() => import("@/domains/global/components/HookFormDevTool"))
+  : () => null;
 
 interface FormProperties<T extends FieldValues> extends Childrenable {
   onSubmit: (data: T) => void;
@@ -23,24 +24,42 @@ interface FormProperties<T extends FieldValues> extends Childrenable {
   replaceEmptyStringToNull?: boolean;
 }
 
-function getDirtyValues(
-  dirtyFields: Record<string, unknown> | boolean,
-  allValues: Record<string, unknown>
-): Record<string, unknown> {
+type Field = Record<string, unknown>;
+
+function getDirtyValues(dirtyFields: Field | boolean, allValues: Field): Field {
   if (dirtyFields === true || Array.isArray(dirtyFields)) return allValues;
   return Object.fromEntries(
-    Object.keys(dirtyFields).map((key) => [
-      key,
-      getDirtyValues(
-        (dirtyFields as Record<string, unknown>)[key] as Record<
-          string,
-          unknown
-        >,
-        allValues[key] as Record<string, unknown>
-      ),
-    ])
+    Object.keys(dirtyFields)
+      .filter((key) => (dirtyFields as Field)[key] !== false)
+      .map((key) => [
+        key,
+        getDirtyValues(
+          (dirtyFields as Field)[key] as Field,
+          allValues[key] as Field
+        ),
+      ])
   );
 }
+
+const loggingResolver = <T extends FieldValues, C>(
+  resolver: Resolver<T, C>
+): Resolver<T, C> => {
+  return async (values, context, options) => {
+    const shouldLog = false;
+
+    if (shouldLog) {
+      console.log("formZodInput:", values);
+    }
+
+    const result = await resolver(values, context, options);
+
+    if (shouldLog) {
+      console.log("formZodOutput:", result);
+    }
+
+    return result;
+  };
+};
 
 export default function Form<T extends FieldValues>({
   children,
@@ -53,7 +72,9 @@ export default function Form<T extends FieldValues>({
 }: FormProperties<T>): ReactElement {
   const methods: UseFormReturn<T> = useForm<T>({
     defaultValues,
-    resolver: zodResolver(schema),
+    resolver: import.meta.env.DEV
+      ? loggingResolver(zodResolver(schema))
+      : zodResolver(schema),
   });
 
   const safeOnSubmit = useCallback(
