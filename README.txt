@@ -1,39 +1,62 @@
-O vídeo do projeto pode ser acessado em https://youtu.be/Jkrk-iUCsal
+<h1 align="center"> 
+  <p>Título do Projeto</p> 
+  <img src="link da capa A" width="30%"> 
+  <img src="link da capa B" width="30%"> 
+  <img src="link da capa C" width="30%"> 
+</h1> 
 
-A aplicação hospedada pode ser acessada em https://ziscar.me
+<p> 
+  <img src="https://img.shields.io/badge/Release-Feb%202026-green">  
+  <img src="https://img.shields.io/badge/Version-0.1.0-blue">  
+  <img src="https://img.shields.io/github/stars/MateusPitura/saas-fullstack-vehicle?style=social"> 
+</p>  
 
-O código fonte também está disponível no GitHub em https://github.com/MateusPitura/ziscar
+## Description
 
-1. Execução local
+Texto de descrição do projeto  
 
-A aplicação pode ser acessada localmente utilizando as credenciais a seguir:
+- [Features](#features)
+- [How to Run](#how-to-run)
+- [Technologies Used](#technologies-used)
+- [Authors](#authors)
 
-Administrador:
-- Usuário: john.doe@email.com
-- Senha: Senha12345@
+## Features 
 
-Vendedor:
-- Usuário: john.sales@email.com
-- Senha: Senha12345@
+:nome_do_emoji2: **Título da funcionalidade1:** descrição da funcionalide1 
 
-1.1 Instalação do Docker
+:nome_do_emoji3: **Título da funcionalidade2:** descrição da funcionalide2 
 
-Caso já possua o Docker instalado pule para a próxima etapa
+:nome_do_emoji4: **Título da funcionalidade3:** descrição da funcionalide3 
 
-Entre no site https://docs.docker.com/desktop/setup/install/windows-install/ e clique em "Docker Desktop for Windows - x86_64"
+<p align="center"> 
+  <img src="link do gif ou vídeo" width="25%"> 
+</p> 
 
-Execute o arquivo ".exe" e siga as instruções
+## How to Run
 
-Inicie o aplicativo "Docker Desktop" e clique em "skip" na tela de login
+1. Here on GitHub, go to the Releases tab and download the `.jar`
 
-Execute em um terminal CMD "wsl --update". Após concluir, verifique a versão com "wsl --version" (ex.: 2.5.10.0). Reinicie o computador e abra novamente o aplicativo "Docker Desktop"
+2. Execute it on your computers, it's required to have Java 17
 
-Em um terminal CMD verifique a versão do docker com "docker -v" (ex.: 28.3.3) e "docker compose -v" (ex.: 2.39.2)
+**For devs:** 
 
-1.2 Execução
+1. `git clone git@github.com:MateusPitura/app-portfolio-pessoal.git app`  
 
-Baixe o zip do projeto e descompacte. Use as opções padrão do arquivo ".env" ou o configure conforme a sua preferência navegando até a pasta raiz "ziscar-main", abrindo o arquivo e o editando
+2. `npm install` 
 
-Abra um terminal CMD, navegue até a pasta raiz "ziscar-main". Garante que o programa "Docker Desktop" esteja aberto e execute no terminal "docker compose pull" (irá demorar aproximadamente 2 minutos a depender da internet) e depois "docker compose up". Caso o Docker solicite permissão para acessar o serviço de rede, aceite
+3. `npx react-native start` 
 
-No navegador abra "http://localhost:5173". As portas 3000, 5173, 5432 precisam estar livres
+## Technologies Used
+
+:heavy_check_mark: Tecnologia1 
+
+:heavy_check_mark: Tecnologia2 
+ 
+:heavy_check_mark: Tecnologia3  
+
+## Authors 
+
+| Mateus Pitura | 
+|------|
+| <p align="center"><img src="https://avatars.githubusercontent.com/u/119008106" width="100" height="100"></p> |  
+| <a href="https://www.linkedin.com/in/mateuspitura/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&goColor=white"> |
