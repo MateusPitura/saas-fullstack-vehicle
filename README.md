@@ -13,7 +13,6 @@
 An open-source SaaS for car dealership management, used as a **laboratory** for implementing new technologies
 
 - [Features](#features)
-- [How to Run](#how-to-run)
 - [Technologies Used](#technologies-used)
 - [Authors](#authors)
 
