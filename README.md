@@ -20,7 +20,7 @@ An open-source SaaS for car dealership management, used as a **laboratory** for 
 
 :car: **Information System:** a web-based system for managing car dealerships, allowing you to keep track of vehicles, accounts, and customers
 
-:blue_car: **Landing Page** a promotional website with a blog about the technologies used in each system
+:blue_car: **Landing Page:** a promotional website with a blog about the technologies used in each system
 
 ## Technologies Used
 
