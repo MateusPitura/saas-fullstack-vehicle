@@ -63,7 +63,7 @@ export default function AutoComplete<T extends FieldValues>({
           />
         </Popover.Content>
       </Popover>
-      {hideErrorLabel || <InputError name={name} required={required} />}
+      {hideErrorLabel || <InputError name={name} />}
     </label>
   );
 }

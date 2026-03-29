@@ -6,7 +6,6 @@ import { useFormState } from "react-hook-form";
 interface InputErrorProperties {
   name: string;
   isFieldArray?: boolean;
-  required?: boolean;
 }
 
 export default function InputError({
@@ -28,7 +27,7 @@ export default function InputError({
     >
       {isFieldArray
         ? errorsFormatted?.root?.message?.toString()
-        : errorsFormatted?.message?.toString() ?? "Campo inválido"}
+        : (errorsFormatted?.message?.toString() ?? "Campo inválido")}
     </span>
   );
 }

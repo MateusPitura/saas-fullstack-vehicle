@@ -1,8 +1,8 @@
 import { Mask } from "@/domains/global/types";
 import { applyMask } from "@/domains/global/utils/applyMask";
 import classNames from "classnames";
-import { useEffect, type ReactElement } from "react";
-import { FieldValues, Path, useFormContext, useWatch } from "react-hook-form";
+import { type ReactElement } from "react";
+import { FieldValues, Path, useFormContext } from "react-hook-form";
 import Button from "../Button";
 import { IconsName } from "../types";
 import InputError from "./InputError";
@@ -41,17 +41,17 @@ export default function Input<T extends FieldValues>({
   forceUnselect,
   disabled = false,
   autoComplete = true,
-  onChange: customOnChange
+  onChange: customOnChange,
 }: InputProperties<T>): ReactElement {
   const { register, setValue } = useFormContext();
-  const value = useWatch({ name });
+  // const value = useWatch({ name });
 
-  useEffect(() => {
-    if (mask) {
-      const valueFormatted = applyMask(value, mask);
-      setValue<string>(name, valueFormatted);
-    }
-  }, [value, mask, name, setValue]);
+  // useEffect(() => {
+  //   if (mask) {
+  //     const valueFormatted = applyMask(value, mask);
+  //     setValue<string>(name, valueFormatted);
+  //   }
+  // }, [value, mask, name, setValue]);
 
   const { onChange, ...rest } = register(name);
 
@@ -63,20 +63,31 @@ export default function Input<T extends FieldValues>({
           "border-neutral-500 border-2 rounded-md flex items-center gap-1 overflow-hidden h-10",
           {
             "!border-neutral-300": disabled,
-          }
+          },
         )}
       >
         <input
           {...rest}
           onChange={(event) => {
-            onChange(event);
-            customOnChange?.(event.target.value);
+            let value = event.target.value;
+            if (mask) {
+              value = applyMask(value, mask)!;
+              event.target.value = value;
+            }
+
+            onChange({
+              target: {
+                name: event.target.name,
+                value,
+              },
+            });
+            customOnChange?.(value);
           }}
           className={classNames(
             "text-body-large text-neutral-700 bg-transparent p-1 px-2 caret-neutral-700 flex-1",
             {
               "!text-neutral-300": disabled,
-            }
+            },
           )}
           autoComplete={autoComplete ? "on" : "off"}
           placeholder={placeholder}

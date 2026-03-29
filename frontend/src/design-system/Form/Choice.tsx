@@ -66,7 +66,7 @@ function Radio<T extends FieldValues>({
         <div className="col-start-1 row-start-1 w-2 h-2 rounded-full peer-checked:bg-slate-800 peer-checked:peer-disabled:bg-neutral-300" />
       </div>
       <div className="text-body-large text-neutral-700">{label}</div>
-      {hideErrorLabel || <InputError name={name} required={required} />}
+      {hideErrorLabel || <InputError name={name} />}
     </label>
   );
 }
@@ -94,12 +94,12 @@ function Checkbox<T extends FieldValues>({
       <input
         type="checkbox"
         {...register(name)}
-        className="col-start-1 row-start-1 shrink-0 w-4 h-4 border-2 accent-slate-800 disabled:border-neutral-300 cursor-pointer"
+        className="shrink-0 w-4 h-4 border-2 accent-slate-800 disabled:border-neutral-300 cursor-pointer"
         required={required}
         {...props}
       />
       <div className="text-body-large text-neutral-700">{label}</div>
-      {hideErrorLabel || <InputError name={name} required={required} />}
+      {hideErrorLabel || <InputError name={name} />}
     </label>
   );
 }

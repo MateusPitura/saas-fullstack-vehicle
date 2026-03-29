@@ -158,7 +158,7 @@ export const cnpj = () =>
 export const phone = () =>
   string(15)
     .transform((phone) => removeMask(phone))
-    .refine((cep) => /^\d{11}$/.test(cep), "Celular inválido");
+    .refine((phone) => /^\d{11}$/.test(phone), "Celular inválido");
 
 export const password = () =>
   string()
