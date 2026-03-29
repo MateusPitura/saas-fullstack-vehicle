@@ -1,12 +1,12 @@
 <h1 align="center"> 
   <p>SaaS</p> 
   <img src="https://github.com/user-attachments/assets/fb9cea64-4464-4ea4-a617-9a7a1f376e06" width="100%"> 
-</h1> 
+</h1>
 
 <p> 
   <img src="https://img.shields.io/badge/Release-Feb%202026-green">  
-  <img src="https://img.shields.io/github/stars/MateusPitura/saas-fullstack-vehicle?style=social"> 
-</p>  
+  <img src="https://img.shields.io/github/stars/MateusPitura/saas-dms?style=social"> 
+</p>
 
 ## Description
 
@@ -16,7 +16,7 @@ An open-source SaaS for car dealership management, used as a **laboratory** for 
 - [Technologies Used](#technologies-used)
 - [Authors](#authors)
 
-## Features 
+## Features
 
 :car: **Information System:** a web-based system for managing car dealerships, allowing you to keep track of vehicles, accounts, and customers
 
@@ -43,9 +43,9 @@ An open-source SaaS for car dealership management, used as a **laboratory** for 
 <img src="https://img.shields.io/badge/WordPress-%23117AC9.svg?style=for-the-badge&logo=WordPress&logoColor=white" alt="WordPress"/>
 </p>
 
-## Authors 
+## Authors
 
-| Mateus Pitura | 
-|------|
-| <p align="center"><img src="https://avatars.githubusercontent.com/u/119008106" width="100" height="100"></p> |  
+| Mateus Pitura                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://avatars.githubusercontent.com/u/119008106" width="100" height="100"></p>                                                                      |
 | <a href="https://url.mateuspitura.com?q=linkedin.com/in/mateuspitura/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"> |
