@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$SCRIPT_DIR/../.env"
 
+# Necessary to execute thorough cron, which has a limited PATH
 PATH="$PATH:/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:$HOME/bin"
 
 BACKUP_DIR="/tmp"
