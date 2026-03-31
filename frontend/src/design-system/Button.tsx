@@ -34,7 +34,7 @@ const BaseButton = forwardRef(
       iconRight,
       ...props
     }: BaseButtonProps,
-    ref: React.Ref<HTMLButtonElement>
+    ref: React.Ref<HTMLButtonElement>,
   ) => {
     return (
       <button
@@ -47,7 +47,7 @@ const BaseButton = forwardRef(
             "!w-full": fullWidth,
             "px-4": padding === "default",
             "px-0": padding === "none",
-          }
+          },
         )}
         disabled={state === "disabled" || state === "loading"}
         type={type}
@@ -78,7 +78,7 @@ const BaseButton = forwardRef(
         )}
       </button>
     );
-  }
+  },
 );
 
 interface ButtonVariantProps extends BaseButtonProps {
@@ -94,7 +94,7 @@ const ButtonVariant = forwardRef(
       color = "gray",
       ...props
     }: ButtonVariantProps,
-    ref: React.Ref<HTMLButtonElement>
+    ref: React.Ref<HTMLButtonElement>,
   ) => {
     switch (variant) {
       case "primary":
@@ -122,7 +122,7 @@ const ButtonVariant = forwardRef(
               {
                 "!border-neutral-300 !text-neutral-300":
                   state === "disabled" || state === "loading",
-              }
+              },
             )}
             state={state}
             ref={ref}
@@ -153,7 +153,7 @@ const ButtonVariant = forwardRef(
           />
         );
     }
-  }
+  },
 );
 
 interface ButtonProps extends ButtonVariantProps {
@@ -165,7 +165,7 @@ interface ButtonProps extends ButtonVariantProps {
 const Button = forwardRef(
   (
     { resource, action, onClick, state, tooltipMessage, ...props }: ButtonProps,
-    ref: React.Ref<HTMLButtonElement>
+    ref: React.Ref<HTMLButtonElement>,
   ) => {
     const hasPermission = useCheckPermission(resource, action);
 
@@ -176,11 +176,21 @@ const Button = forwardRef(
     return (
       <Tooltip content={tooltipMessage} disabled={!tooltipMessage}>
         <div>
-          <ButtonVariant {...props} ref={ref} onClick={onClick} state={state} />
+          <ButtonVariant
+            {...props}
+            ref={ref}
+            onClick={() => {
+              onClick?.();
+              window.analytics?.addEvent?.(
+                `Button: label=${props.label} tooltip=${tooltipMessage}`,
+              );
+            }}
+            state={state}
+          />
         </div>
       </Tooltip>
     );
-  }
+  },
 );
 
 export default Button;

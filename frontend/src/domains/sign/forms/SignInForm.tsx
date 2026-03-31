@@ -16,6 +16,7 @@ import { useMutation } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import ForgetPasswordModal from "../components/ForgetPasswordModal";
 import SignCard from "../components/SignCard";
+import useSignPageContext from "../hooks/useSignPageContext";
 
 const SchemaSignInForm = s.object({
   email: s.email(),
@@ -28,6 +29,7 @@ export default function SignInForm(): ReactNode {
   const dialog = useDialog();
   const { safeFetch } = useSafeFetch();
   const { authChannel } = useGlobalContext();
+  const { handleStep } = useSignPageContext();
 
   async function handleSignIn(data: SignInFormInputs) {
     await safeFetch(`${BACKEND_URL}/auth/sign-in`, {
@@ -57,8 +59,17 @@ export default function SignInForm(): ReactNode {
         className="flex-1 flex flex-col"
       >
         <div className="flex-1 flex flex-col gap-2">
-          <Input<SignInFormInputs> name="email" label="Email" autoFocus required />
-          <InputPassword<SignInFormInputs> label="Senha" name="password" required />
+          <Input<SignInFormInputs>
+            name="email"
+            label="Email"
+            autoFocus
+            required
+          />
+          <InputPassword<SignInFormInputs>
+            label="Senha"
+            name="password"
+            required
+          />
           <div className="flex items-end justify-end">
             <Button
               label="Esqueci a senha"
@@ -72,6 +83,10 @@ export default function SignInForm(): ReactNode {
         <SignCard.Footer
           label="Entrar"
           primaryBtnState={isPending ? "loading" : undefined}
+          secondaryBtnLabel="Criar conta"
+          onClickSecondaryBtn={() => {
+            handleStep("SIGN_UP");
+          }}
         />
       </Form>
     </>

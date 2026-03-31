@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -11,9 +11,9 @@
       http-equiv="Content-Security-Policy"
       content="
 		    default-src 'self'; 
-        connect-src 'self' data: https://viacep.com.br https://servicodados.ibge.gov.br <%= BACKEND_URL %>;
+        connect-src 'self' data: https://viacep.com.br https://servicodados.ibge.gov.br <%= BACKEND_URL %> https://traffic-analytics.mateuspitura.workers.dev;
 	      img-src 'self' data:;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
         style-src 'self' 'unsafe-inline';
         font-src 'self' data:;
       "
@@ -40,11 +40,15 @@
           window.history.replaceState(
             null,
             null,
-            l.pathname.slice(0, -1) + decoded + l.hash
+            l.pathname.slice(0, -1) + decoded + l.hash,
           );
         }
       })(window.location);
     </script>
+    <script
+      src="https://cdn.jsdelivr.net/gh/MateusPitura/traffic-analytics@latest/script/dist/analytics.js"
+      async
+    ></script>
   </head>
 
   <body style="margin: 0">

@@ -48,7 +48,8 @@ export default function ForgetPasswordForm(): ReactNode {
       <Dialog.Body>
         <div className="flex flex-col gap-4">
           <span className="text-body-large text-neutral-700">
-            Insira seu email para enviarmos as instruções para recuperar sua senha
+            Insira seu email para enviarmos as instruções para recuperar sua
+            senha
           </span>
           <Input<ForgetPasswordFormInputs>
             name="email"
@@ -61,6 +62,7 @@ export default function ForgetPasswordForm(): ReactNode {
         labelPrimaryBtn="Enviar"
         dirty
         primaryBtnState={isPending ? "loading" : undefined}
+        onClickSecondaryBtn={closeDialog}
       />
     </Form>
   );

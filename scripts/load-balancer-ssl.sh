@@ -10,25 +10,25 @@ PUBLIC_FILE_PATH="$HOME/Downloads/cert.pem"
 PRIVATE_FILE_PATH="$HOME/Downloads/privkey.pem"
 CA_FILE_PATH="$HOME/Downloads/fullchain.pem"
 LOAD_BALANCER_LISTENER_NAME="https-listener"
-BACKEND_SET_NAME="bs_lb_2023-0831-1920"
+BACKEND_SET_NAME="dms-backend-bs-lb"
 
 echo "Generating new SSL certificate for load balancer..."
-sudo certbot certonly --manual --preferred-challenges dns -d apidms.mateuspitura.com --email $SSL_EMAIL --agree-tos --no-eff-email
+sudo certbot certonly --manual --preferred-challenges dns -d apidms.mateuspitura.com --email "$SSL_EMAIL" --agree-tos --no-eff-email
 
 echo "Moving certificate files to Downloads..."
-sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/cert.pem $HOME/Downloads/
-sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/fullchain.pem $HOME/Downloads/
-sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/privkey.pem $HOME/Downloads/
+sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/cert.pem "$HOME"/Downloads/
+sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/fullchain.pem "$HOME"/Downloads/
+sudo cp /etc/letsencrypt/live/apidms.mateuspitura.com/privkey.pem "$HOME"/Downloads/
 
 echo "Changing ownership of certificate files..."
-sudo chown $USER:$USER $HOME/Downloads/cert.pem
-sudo chown $USER:$USER $HOME/Downloads/privkey.pem
-sudo chown $USER:$USER $HOME/Downloads/fullchain.pem
+sudo chown "$USER":"$USER" "$HOME"/Downloads/cert.pem
+sudo chown "$USER":"$USER" "$HOME"/Downloads/privkey.pem
+sudo chown "$USER":"$USER" "$HOME"/Downloads/fullchain.pem
 
 echo "Setting permissions on certificate files..."
-sudo chmod 600 $HOME/Downloads/cert.pem
-sudo chmod 600 $HOME/Downloads/privkey.pem
-sudo chmod 600 $HOME/Downloads/fullchain.pem
+sudo chmod 600 "$HOME"/Downloads/cert.pem
+sudo chmod 600 "$HOME"/Downloads/privkey.pem
+sudo chmod 600 "$HOME"/Downloads/fullchain.pem
 
 echo "Creating certificate $CERT_NAME..."
 oci lb certificate create \
