@@ -1,7 +1,7 @@
 import useCheckPermission from "@/domains/global/hooks/useCheckPermission";
 import { ActionsType, ResourcesType } from "@shared/enums";
 import classNames from "classnames";
-import { forwardRef, ReactNode } from "react";
+import { forwardRef, MouseEvent, ReactNode } from "react";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
 import { ButtonColor, ButtonState, IconsName } from "./types";
@@ -10,7 +10,7 @@ interface BaseButtonProps {
   state?: ButtonState;
   className?: string;
   label?: ReactNode;
-  onClick?: () => void;
+  onClick?: (_: MouseEvent<HTMLButtonElement> | undefined) => void;
   fullWidth?: boolean;
   textAlign?: "start" | "center" | "end";
   iconLeft?: IconsName;
@@ -179,8 +179,8 @@ const Button = forwardRef(
           <ButtonVariant
             {...props}
             ref={ref}
-            onClick={() => {
-              onClick?.();
+            onClick={(event) => {
+              onClick?.(event);
               window.analytics?.addEvent?.(
                 `Button: label=${props.label} tooltip=${tooltipMessage}`,
               );
